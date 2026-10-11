@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { BrandSelectionCards } from '../brand/BrandSelectionCards';
 import { TraviRobotLogo } from '../brand/TraviRobotLogo';
@@ -34,11 +35,12 @@ export const LandingPage: React.FC = () => {
     setTraviOpen, 
     metrics 
   } = useWorkspace();
+  const reduceMotion = useReducedMotion();
 
   return (
     <div className="space-y-20 pb-16">
       {/* Prototype Banner */}
-      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-amber-200">
+      <div className="trace-glass trace-entrance flex flex-col items-center justify-between gap-3 rounded-2xl border-amber-300/20 bg-gradient-to-r from-amber-500/[0.07] via-indigo-500/[0.035] to-transparent p-3.5 text-xs text-amber-100 sm:flex-row">
         <div className="flex items-center gap-2">
           <span className="px-2 py-0.5 rounded font-mono font-bold uppercase bg-amber-500/20 text-amber-300 text-[10px] tracking-wider">
             Hackathon Prototype
@@ -59,33 +61,41 @@ export const LandingPage: React.FC = () => {
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-6 pb-6 overflow-hidden">
-        {/* Subtle background glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-blue-600/15 via-indigo-600/10 to-cyan-500/15 blur-[120px] pointer-events-none rounded-full" />
+      <motion.section
+        className="relative isolate overflow-hidden rounded-[2rem] border border-indigo-300/10 bg-[radial-gradient(ellipse_at_50%_0%,rgba(99,102,241,0.16),transparent_55%),linear-gradient(145deg,rgba(12,18,36,0.68),rgba(7,11,22,0.2))] px-4 py-14 sm:px-8 sm:py-20"
+        initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0 : 0.65, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="trace-ambient-orb pointer-events-none absolute -left-32 top-0 h-80 w-80 rounded-full bg-blue-500/[0.12] blur-[90px]" />
+        <div className="trace-ambient-orb pointer-events-none absolute -right-28 top-12 h-96 w-96 rounded-full bg-violet-500/[0.13] blur-[110px]" style={{ animationDelay: '-7s' }} />
+        <motion.div className="pointer-events-none absolute left-[13%] top-[24%] h-1 w-1 rounded-full bg-cyan-200 shadow-[0_0_18px_5px_rgba(34,211,238,0.35)]" animate={reduceMotion ? undefined : { y: [0, -18, 0], opacity: [0.35, 0.9, 0.35] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }} />
+        <motion.div className="pointer-events-none absolute right-[17%] top-[33%] h-1.5 w-1.5 rounded-full bg-violet-200 shadow-[0_0_20px_5px_rgba(167,139,250,0.35)]" animate={reduceMotion ? undefined : { y: [0, 14, 0], x: [0, -8, 0], opacity: [0.25, 0.8, 0.25] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }} />
+        <div className="pointer-events-none absolute inset-x-[12%] bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-300/25 to-transparent" />
 
-        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-300 shadow-sm">
+        <div className="relative z-10 mx-auto max-w-4xl space-y-7 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200/15 bg-slate-950/45 px-3.5 py-1.5 text-xs text-slate-300 shadow-lg shadow-indigo-950/20 backdrop-blur-xl">
             <TraceLogo className="w-4 h-4" />
             <span className="font-semibold text-blue-400">TRACE</span>
             <span className="text-slate-600">·</span>
             <span>Personal Intelligence & Context-Aware Execution System</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-[1.1] text-balance">
+          <h1 className="text-balance text-4xl font-extrabold leading-[1.08] tracking-[-0.045em] text-white sm:text-6xl lg:text-7xl">
             See the connections.<br />
-            <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300 bg-clip-text text-transparent">
+            <span className="trace-gradient-text">
               Know what matters.
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="mx-auto max-w-2xl text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
             People don't suffer from a lack of information — they suffer from scattered context. TRACE connects emails, calendars, meeting notes, and commitments to surface critical conflicts and recommend approved actions.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
               onClick={() => setActiveTab('command-center')}
-              className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-lg shadow-blue-600/25 flex items-center gap-2"
+              className="group flex items-center gap-2 rounded-xl border border-blue-300/20 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-6 py-3 text-xs font-semibold text-white shadow-lg shadow-indigo-950/50 transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(99,102,241,0.9)]"
             >
               <span>Enter Workspace Console</span>
               <ArrowRight className="w-4 h-4" />
@@ -96,7 +106,7 @@ export const LandingPage: React.FC = () => {
                 setDemoStep(1);
                 setDemoModalOpen(true);
               }}
-              className="px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-800 font-semibold text-xs transition-all flex items-center gap-2"
+              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-6 py-3 text-xs font-semibold text-slate-200 transition-all hover:-translate-y-0.5 hover:border-indigo-300/25 hover:bg-indigo-400/[0.08] hover:text-white"
             >
               <Sparkles className="w-4 h-4 text-blue-400" />
               <span>Interactive Demo Scenario</span>
@@ -104,14 +114,14 @@ export const LandingPage: React.FC = () => {
 
             <button
               onClick={() => setTraviOpen(true)}
-              className="px-5 py-3 rounded-xl bg-indigo-950/60 hover:bg-indigo-900/60 text-indigo-300 hover:text-white border border-indigo-500/30 font-semibold text-xs transition-all flex items-center gap-2.5"
+              className="flex items-center gap-2.5 rounded-xl border border-cyan-200/15 bg-gradient-to-r from-indigo-500/15 to-cyan-500/[0.06] px-5 py-3 text-xs font-semibold text-indigo-200 transition-all hover:-translate-y-0.5 hover:border-cyan-200/30 hover:shadow-[0_12px_32px_-18px_rgba(34,211,238,0.65)] hover:text-white"
             >
               <TraviRobotLogo className="w-5 h-5" />
               <span>Meet TRAVI</span>
             </button>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* RECREATED BRAND SELECTION SECTION: Two distinct brand cards from visual reference */}
       <section className="space-y-6">
@@ -226,14 +236,14 @@ export const LandingPage: React.FC = () => {
             </h2>
 
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              TRAVI is the assistant experience within TRACE. It helps users explore information, understand available context, inspect supporting evidence across emails and calendars, and navigate the capabilities of the TRACE prototype.
+              TRAVI is a local demo assistant with predefined keyword responses. Explore sample workspace records, inspect linked evidence, and navigate TRACE—without an external AI service.
             </p>
 
             <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-300 space-y-1">
               <div className="font-semibold text-white">How TRACE & TRAVI Relate:</div>
               <div className="text-slate-400 text-[11px] leading-relaxed">
                 <strong className="text-blue-400">TRACE</strong> is the overall personal intelligence and context-aware execution system.<br />
-                <strong className="text-indigo-400">TRAVI</strong> is the assistant interface within TRACE that provides interactive conversational reasoning over the workspace.
+                <strong className="text-indigo-400">TRAVI</strong> is the assistant interface within TRACE, using transparent local keyword matching over demo workspace records.
               </div>
             </div>
 
@@ -262,7 +272,7 @@ export const LandingPage: React.FC = () => {
                 <TraviRobotLogo className="w-7 h-7" />
                 <span className="font-bold text-white">TRAVI Live Preview</span>
               </div>
-              <span className="text-[10px] font-mono text-emerald-400">Online · Context Grounded</span>
+              <span className="text-[10px] font-mono text-emerald-400">LOCAL DEMO · KEYWORD MATCH</span>
             </div>
 
             {/* Preview Question */}

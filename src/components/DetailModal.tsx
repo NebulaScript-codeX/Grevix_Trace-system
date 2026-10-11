@@ -1,9 +1,11 @@
 import React from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { X, ExternalLink, Calendar, CheckCircle2, ShieldAlert, FileText, ArrowRight, CornerDownRight } from 'lucide-react';
 
 export const DetailModal: React.FC = () => {
   const { selectedItem, setSelectedItem, sources, memories, findings, approveAction, resolveFinding, reviewRisk, setActiveTab } = useWorkspace();
+  const reduceMotion = useReducedMotion();
 
   if (!selectedItem) return null;
 
@@ -12,10 +14,22 @@ export const DetailModal: React.FC = () => {
   const closeModal = () => setSelectedItem(null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150">
-      <div 
-        className="bg-[#0f172a] border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-3 backdrop-blur-md sm:p-4"
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={reduceMotion ? undefined : { opacity: 0 }}
+      onClick={closeModal}
+    >
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-indigo-300/15 bg-[radial-gradient(ellipse_at_top_right,rgba(99,102,241,0.12),transparent_45%),#0b1020] shadow-[0_30px_100px_-30px_rgba(79,70,229,0.55)]"
         onClick={(e) => e.stopPropagation()}
+        initial={reduceMotion ? false : { opacity: 0, y: 14, scale: 0.975 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={reduceMotion ? undefined : { opacity: 0, y: 8, scale: 0.985 }}
+        transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 30 }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/80 bg-slate-900/50">
@@ -32,6 +46,7 @@ export const DetailModal: React.FC = () => {
           </div>
           <button
             onClick={closeModal}
+            aria-label="Close details"
             className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -272,7 +287,7 @@ export const DetailModal: React.FC = () => {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };

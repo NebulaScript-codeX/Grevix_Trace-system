@@ -5,7 +5,6 @@ import {
   Mail, 
   Calendar, 
   FileText, 
-  Cpu, 
   MessageSquare, 
   ShieldCheck, 
   Lock, 
@@ -58,13 +57,15 @@ export const IntegrationsPermissions: React.FC = () => {
       case 'Mail': return <Mail className="w-5 h-5 text-blue-400" />;
       case 'Calendar': return <Calendar className="w-5 h-5 text-amber-400" />;
       case 'FileText': return <FileText className="w-5 h-5 text-emerald-400" />;
-      case 'Cpu': return <Cpu className="w-5 h-5 text-purple-400" />;
       default: return <MessageSquare className="w-5 h-5 text-slate-400" />;
     }
   };
 
-  const handleSimulateSync = (name: string) => {
-    addToast('info', 'Sync Refresh', `Verified local data integrity for ${name}. No remote mutations made.`);
+  const handleViewStatus = (integration: IntegrationService) => {
+    const message = integration.status === 'demo_only'
+      ? `${integration.name} is a local demo record. No remote connection or synchronization is configured.`
+      : `${integration.name} is marked ${integration.status}. No remote connection or synchronization is attempted.`;
+    addToast('info', 'Connector Status', message);
   };
 
   return (
@@ -151,11 +152,11 @@ export const IntegrationsPermissions: React.FC = () => {
               </span>
 
               <button
-                onClick={() => handleSimulateSync(integ.name)}
+                onClick={() => handleViewStatus(integ)}
                 className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-medium border border-slate-800 transition-colors flex items-center gap-1.5"
               >
                 <RefreshCw className="w-3 h-3" />
-                <span>Verify State</span>
+                <span>Check Status</span>
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { TraviRobotLogo } from './brand/TraviRobotLogo';
 import { 
@@ -7,8 +8,7 @@ import {
   ExternalLink, 
   CheckCircle2, 
   Lock, 
-  X,
-  ChevronRight
+  X
 } from 'lucide-react';
 
 interface TraviAssistantProps {
@@ -23,8 +23,7 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
     resetTraviChat, 
     sources, 
     memories, 
-    actions, 
-    findings,
+    actions,
     approveAction,
     setSelectedItem,
     setActiveTab
@@ -32,6 +31,16 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
 
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!isModal || !onClose) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModal, onClose]);
 
   const samplePrompts = [
     { label: "What is TRACE?", query: "What is TRACE and how does it work?" },
@@ -41,8 +50,8 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
   ];
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [traviMessages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+  }, [traviMessages, reduceMotion]);
 
   const handleSend = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -52,9 +61,9 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
   };
 
   const handleCitationClick = (citation: { label: string; id: string; type: string }) => {
-    if (citation.type === 'email' || citation.type === 'calendar' || citation.type === 'document') {
-      const src = sources.find(s => s.id === citation.id);
-      if (src) setSelectedItem({ type: 'source', item: src });
+    const source = sources.find(record => record.id === citation.id);
+    if (source) {
+      setSelectedItem({ type: 'source', item: source });
     } else if (citation.type === 'memory') {
       const mem = memories.find(m => m.id === citation.id);
       if (mem) setSelectedItem({ type: 'memory', item: mem });
@@ -62,20 +71,32 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
       setActiveTab('action-board');
     } else if (citation.type === 'graph') {
       setActiveTab('context-graph');
+    } else if (citation.type === 'risk') {
+      setActiveTab('trust-risk');
+    } else if (citation.type === 'source') {
+      setActiveTab('source-library');
     }
   };
 
   return (
-    <div className={`flex flex-col h-full bg-[#090d18] ${isModal ? 'rounded-2xl border border-slate-800 shadow-2xl' : 'rounded-2xl border border-slate-800'}`}>
+    <div className={`relative flex h-full flex-col overflow-hidden bg-[radial-gradient(ellipse_at_top_right,rgba(79,70,229,0.12),transparent_42%),linear-gradient(155deg,#0d1325,#080c17_72%)] ${isModal ? 'border-0 sm:rounded-3xl' : 'rounded-2xl border border-indigo-400/15'}`}>
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between">
+      <div className="relative flex items-center justify-between border-b border-indigo-200/10 bg-white/[0.025] px-4 py-4 sm:px-6">
         <div className="flex items-center gap-3">
-          <TraviRobotLogo className="w-9 h-9" />
+          <motion.span layoutId="travi-avatar" className="relative flex h-10 w-10 items-center justify-center rounded-full border border-cyan-200/20 bg-indigo-500/10 shadow-[0_0_28px_rgba(99,102,241,0.26)]">
+            <motion.span
+              className="block h-9 w-9"
+              animate={reduceMotion ? undefined : { y: [0, -2, 0], filter: ['drop-shadow(0 0 4px rgba(34,211,238,.16))', 'drop-shadow(0 0 10px rgba(34,211,238,.34))', 'drop-shadow(0 0 4px rgba(34,211,238,.16))'] }}
+              transition={{ duration: 4.4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <TraviRobotLogo className="h-full w-full" />
+            </motion.span>
+          </motion.span>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-white tracking-tight">TRAVI</h2>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-semibold">
-                TRACE ASSISTANT
+              <span className="rounded-full border border-cyan-300/20 bg-gradient-to-r from-indigo-400/10 to-cyan-400/10 px-2 py-0.5 text-[9px] font-mono font-bold tracking-wider text-cyan-200">
+                LOCAL DEMO
               </span>
             </div>
             <p className="text-xs text-slate-400">
@@ -87,7 +108,7 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
         <div className="flex items-center gap-2">
           <button
             onClick={resetTraviChat}
-            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors text-xs flex items-center gap-1"
+            className="flex items-center gap-1 rounded-lg border border-white/5 p-1.5 text-xs text-slate-400 transition-colors hover:border-indigo-300/20 hover:bg-indigo-400/10 hover:text-white"
             title="Reset conversation"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -97,7 +118,8 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
           {isModal && onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label="Close TRAVI assistant"
+              className="rounded-lg border border-white/5 p-1.5 text-slate-400 transition-colors hover:border-rose-300/20 hover:bg-rose-400/10 hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>
@@ -106,21 +128,29 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
       </div>
 
       {/* Prototype Disclosure Bar */}
-      <div className="px-6 py-2 bg-blue-950/20 border-b border-blue-500/10 flex items-center gap-2 text-[11px] text-blue-300">
+      <div className="flex items-center gap-2 border-b border-indigo-300/10 bg-gradient-to-r from-indigo-500/[0.08] via-blue-500/[0.04] to-transparent px-4 py-2 text-[10px] text-blue-200/90 sm:px-6 sm:text-[11px]">
         <Lock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
         <span>
-          <strong>Grounded Prototype:</strong> TRAVI answers strictly from your current Project Polaris demo records without hallucination.
+          <strong>Local demo assistant:</strong> TRAVI uses predefined keyword responses and local workspace records. It is not an AI service.
         </span>
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 p-6 overflow-y-auto space-y-4">
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:p-6">
         {traviMessages.map((msg) => {
           const isUser = msg.sender === 'user';
+          const suggestedAction = msg.suggestedActionId
+            ? actions.find(action => action.id === msg.suggestedActionId)
+            : undefined;
+          const canApproveSuggestedAction = suggestedAction?.status === 'pending_approval'
+            || suggestedAction?.status === 'suggested';
           return (
-            <div
+            <motion.div
               key={msg.id}
               className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
+              initial={reduceMotion ? false : { opacity: 0, y: 8, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: reduceMotion ? 0 : 0.22, ease: 'easeOut' }}
             >
               {/* Avatar */}
               {isUser ? (
@@ -135,8 +165,8 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
               <div
                 className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-4 text-xs leading-relaxed ${
                   isUser
-                    ? 'bg-blue-600 text-white rounded-tr-sm shadow-md'
-                    : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-sm shadow-sm'
+                    ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-tr-sm shadow-[0_10px_28px_-16px_rgba(59,130,246,0.7)]'
+                    : 'border border-indigo-200/[0.09] bg-white/[0.035] text-slate-200 rounded-tl-sm shadow-sm'
                 }`}
               >
                 <div className="whitespace-pre-line font-sans">
@@ -165,17 +195,18 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
                 )}
 
                 {/* Inline Action Callout if suggested */}
-                {msg.suggestedActionId && (
+                {msg.suggestedActionId && suggestedAction && (
                   <div className="mt-3 p-2.5 rounded-xl bg-blue-950/40 border border-blue-500/30 flex items-center justify-between gap-2">
                     <span className="text-[11px] text-blue-200 font-medium">
-                      Action proposed: Update Project Polaris deadline to Oct 18
+                      {suggestedAction.title}
                     </span>
                     <button
-                      onClick={() => approveAction(msg.suggestedActionId!)}
-                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[11px] font-semibold transition-colors shrink-0 flex items-center gap-1 shadow-sm"
+                      onClick={() => approveAction(suggestedAction.id)}
+                      disabled={!canApproveSuggestedAction}
+                      className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-[11px] font-semibold transition-colors shrink-0 flex items-center gap-1 shadow-sm"
                     >
                       <CheckCircle2 className="w-3 h-3" />
-                      <span>Approve</span>
+                      <span>{canApproveSuggestedAction ? 'Approve' : 'Reviewed'}</span>
                     </button>
                   </div>
                 )}
@@ -188,20 +219,20 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
                   {msg.timestamp}
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Suggested Prompt Chips */}
-      <div className="px-6 py-2 bg-slate-950/60 border-t border-slate-800/60 flex items-center gap-2 overflow-x-auto">
+      <div className="flex items-center gap-2 overflow-x-auto border-t border-white/[0.06] bg-slate-950/35 px-4 py-2 sm:px-6">
         <span className="text-[11px] text-slate-500 shrink-0 font-medium">Ask TRAVI:</span>
         {samplePrompts.map((p, idx) => (
           <button
             key={idx}
             onClick={() => sendTraviMessage(p.query)}
-            className="px-2.5 py-1 text-[11px] bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-800 transition-colors whitespace-nowrap shrink-0"
+            className="shrink-0 whitespace-nowrap rounded-full border border-indigo-200/10 bg-white/[0.035] px-2.5 py-1 text-[10px] text-slate-300 transition-colors hover:border-cyan-200/20 hover:bg-indigo-400/10 hover:text-white sm:text-[11px]"
           >
             {p.label}
           </button>
@@ -209,19 +240,19 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
       </div>
 
       {/* Input Field */}
-      <div className="p-4 border-t border-slate-800/80 bg-slate-900/40">
+      <div className="border-t border-indigo-200/10 bg-slate-950/45 p-3 sm:p-4">
         <form onSubmit={handleSend} className="flex items-center gap-2">
           <input
             type="text"
             placeholder="Ask TRAVI about Project Polaris, deadline conflicts, evidence, or next actions..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+            className="flex-1 rounded-xl border border-indigo-200/10 bg-black/25 px-4 py-3 text-xs text-white placeholder-slate-500 focus:border-cyan-300/40 focus:outline-none"
           />
           <button
             type="submit"
             disabled={!input.trim()}
-            className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl transition-colors shadow-sm"
+            className="rounded-xl border border-blue-300/20 bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 text-white shadow-[0_8px_22px_-12px_rgba(99,102,241,0.75)] transition hover:shadow-[0_10px_30px_-10px_rgba(34,211,238,0.55)] disabled:opacity-40"
             aria-label="Send message to TRAVI"
           >
             <Send className="w-4 h-4" />

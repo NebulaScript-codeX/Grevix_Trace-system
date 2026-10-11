@@ -2,10 +2,10 @@ import React from 'react';
 import { useWorkspace } from '../../context/WorkspaceContext';
 import { TraviAssistant } from '../TraviAssistant';
 import { TraviRobotLogo } from '../brand/TraviRobotLogo';
-import { Sparkles, Database, ShieldAlert, CheckSquare, Layers, ArrowRight } from 'lucide-react';
+import { Sparkles, Database, ArrowRight } from 'lucide-react';
 
 export const TraviView: React.FC = () => {
-  const { setActiveTab, setDemoModalOpen, setDemoStep, metrics } = useWorkspace();
+  const { setActiveTab, setDemoModalOpen, setDemoStep, metrics, settings, sources, memories } = useWorkspace();
 
   return (
     <div className="space-y-6">
@@ -19,7 +19,7 @@ export const TraviView: React.FC = () => {
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">TRAVI Assistant Console</h1>
             <p className="text-xs text-slate-400">
-              Your conversational lens into the TRACE execution graph. Ask questions, explore rationale, and approve actions.
+              A local demo assistant with predefined keyword responses over your browser workspace.
             </p>
           </div>
         </div>
@@ -54,10 +54,10 @@ export const TraviView: React.FC = () => {
               <span>TRAVI Knowledge Perimeter</span>
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed">
-              TRAVI evaluates the live state of your current workspace records. It references 6 multi-source documents and verifies facts against explicit timestamps.
+              TRAVI uses predefined keyword responses and can look up {sources.length} local source records and {memories.length} memories. It does not connect to an AI service.
             </p>
             <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-              <div>Active Workspace: <strong className="text-slate-200">Project Polaris</strong></div>
+              <div>Active Workspace: <strong className="text-slate-200">{settings.workspaceName}</strong></div>
               <div>Authoritative Lead: <strong className="text-slate-200">Sarah Lin</strong></div>
               <div>Technical Authority: <strong className="text-slate-200">David Chen</strong></div>
             </div>
@@ -106,8 +106,8 @@ export const TraviView: React.FC = () => {
 
           {/* Transparency Disclaimer */}
           <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed">
-            <strong className="text-amber-300">Hackathon Prototype Notice: </strong>
-            TRAVI does not claim unauthenticated access to live Google Workspace accounts. All reasoning operates over transparent demo records.
+            <strong className="text-amber-300">Demo notice: </strong>
+            TRAVI is a local keyword-based demonstration. It does not connect to external accounts or generate AI responses.
           </div>
         </div>
       </div>

@@ -158,7 +158,7 @@ export interface TimelineEvent {
 export interface IntegrationService {
   id: string;
   name: string;
-  category: 'email' | 'calendar' | 'documents' | 'meetings' | 'collaboration' | 'ai';
+  category: 'email' | 'calendar' | 'documents' | 'meetings' | 'collaboration';
   status: 'demo_only' | 'available' | 'configured' | 'connected' | 'unavailable';
   permissions: string[];
   lastSync?: string;
@@ -192,6 +192,7 @@ export type NavigationTab =
   | 'timeline-audit'
   | 'integrations'
   | 'settings'
+  | 'challenge-solution'
   | 'travi';
 
 export interface TraviMessage {
@@ -203,4 +204,3 @@ export interface TraviMessage {
   suggestedActionId?: string;
   sourceCitations?: { label: string; id: string; type: string }[];
 }
-

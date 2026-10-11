@@ -8,7 +8,8 @@ import {
   TimelineEvent,
   IntegrationService,
   WorkspaceSettings,
-  NavigationTab
+  NavigationTab,
+  TraviMessage
 } from '../types';
 import {
   initialSources,
@@ -49,15 +50,7 @@ interface WorkspaceContextType {
   // TRAVI Assistant State
   isTraviOpen: boolean;
   setTraviOpen: (open: boolean) => void;
-  traviMessages: {
-    id: string;
-    sender: 'user' | 'travi';
-    text: string;
-    timestamp: string;
-    relatedRecordIds?: string[];
-    suggestedActionId?: string;
-    sourceCitations?: { label: string; id: string; type: string }[];
-  }[];
+  traviMessages: TraviMessage[];
   sendTraviMessage: (text: string) => void;
   resetTraviChat: () => void;
   
@@ -104,48 +97,77 @@ interface WorkspaceContextType {
 
 const STORAGE_KEY = 'trace_workspace_state_v1';
 
+const readStoredArray = <T,>(key: string, fallback: T[]): T[] => {
+  try {
+    const saved = localStorage.getItem(key);
+    if (!saved) return fallback;
+
+    const parsed: unknown = JSON.parse(saved);
+    if (!Array.isArray(parsed)) {
+      throw new TypeError(`Stored value for "${key}" is not an array.`);
+    }
+    return parsed as T[];
+  } catch (error) {
+    console.error(`Unable to restore TRACE data for "${key}". Using the demo data instead.`, error);
+    return fallback;
+  }
+};
+
+const readStoredObject = <T extends object>(key: string): Partial<T> => {
+  try {
+    const saved = localStorage.getItem(key);
+    if (!saved) return {};
+
+    const parsed: unknown = JSON.parse(saved);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new TypeError(`Stored value for "${key}" is not an object.`);
+    }
+    return parsed as Partial<T>;
+  } catch (error) {
+    console.error(`Unable to restore TRACE settings for "${key}". Using the defaults instead.`, error);
+    return {};
+  }
+};
+
+const initialTraviMessage: TraviMessage = {
+  id: 'travi-welcome',
+  sender: 'travi',
+  text: 'Hello! I am TRAVI, TRACE’s local demo assistant. I use predefined keyword responses and search the records in this browser workspace; I am not a connected AI service.',
+  timestamp: 'Ready',
+  sourceCitations: [
+    { label: 'Project Polaris Workspace', id: 'src-email-polaris-kickoff', type: 'email' }
+  ]
+};
+
 const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefined);
 
 export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [sources, setSources] = useState<SourceRecord[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_sources`);
-    return saved ? JSON.parse(saved) : initialSources;
-  });
-
-  const [memories, setMemories] = useState<MemoryRecord[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_memories`);
-    return saved ? JSON.parse(saved) : initialMemories;
-  });
-
-  const [findings, setFindings] = useState<IntelligenceFinding[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_findings`);
-    return saved ? JSON.parse(saved) : initialFindings;
-  });
-
-  const [actions, setActions] = useState<ActionRecord[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_actions`);
-    return saved ? JSON.parse(saved) : initialActions;
-  });
-
-  const [risks, setRisks] = useState<TrustRiskRecord[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_risks`);
-    return saved ? JSON.parse(saved) : initialRisks;
-  });
-
-  const [timeline, setTimeline] = useState<TimelineEvent[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_timeline`);
-    return saved ? JSON.parse(saved) : initialTimeline;
-  });
-
-  const [integrations, setIntegrations] = useState<IntegrationService[]>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_integrations`);
-    return saved ? JSON.parse(saved) : initialIntegrations;
-  });
-
-  const [settings, setSettings] = useState<WorkspaceSettings>(() => {
-    const saved = localStorage.getItem(`${STORAGE_KEY}_settings`);
-    return saved ? JSON.parse(saved) : initialSettings;
-  });
+  const [sources, setSources] = useState<SourceRecord[]>(() =>
+    readStoredArray(`${STORAGE_KEY}_sources`, initialSources)
+  );
+  const [memories, setMemories] = useState<MemoryRecord[]>(() =>
+    readStoredArray(`${STORAGE_KEY}_memories`, initialMemories)
+  );
+  const [findings, setFindings] = useState<IntelligenceFinding[]>(() =>
+    readStoredArray(`${STORAGE_KEY}_findings`, initialFindings)
+  );
+  const [actions, setActions] = useState<ActionRecord[]>(() =>
+    readStoredArray(`${STORAGE_KEY}_actions`, initialActions)
+  );
+  const [risks, setRisks] = useState<TrustRiskRecord[]>(() =>
+    readStoredArray(`${STORAGE_KEY}_risks`, initialRisks)
+  );
+  const [timeline, setTimeline] = useState<TimelineEvent[]>(() =>
+    readStoredArray(`${STORAGE_KEY}_timeline`, initialTimeline)
+  );
+  const [integrations, setIntegrations] = useState<IntegrationService[]>(() =>
+    readStoredArray(`${STORAGE_KEY}_integrations`, initialIntegrations)
+      .filter(integration => String(integration.category) !== 'ai')
+  );
+  const [settings, setSettings] = useState<WorkspaceSettings>(() => ({
+    ...initialSettings,
+    ...readStoredObject<WorkspaceSettings>(`${STORAGE_KEY}_settings`)
+  }));
 
   const [activeTab, setActiveTab] = useState<NavigationTab>('home');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -156,33 +178,16 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // TRAVI Assistant State
   const [isTraviOpen, setTraviOpen] = useState<boolean>(false);
-  const [traviMessages, setTraviMessages] = useState<{
-    id: string;
-    sender: 'user' | 'travi';
-    text: string;
-    timestamp: string;
-    relatedRecordIds?: string[];
-    suggestedActionId?: string;
-    sourceCitations?: { label: string; id: string; type: string }[];
-  }[]>([
-    {
-      id: 'travi-welcome',
-      sender: 'travi',
-      text: "Hello! I am TRAVI, your context guide within TRACE. I am grounded in your current Project Polaris workspace data. You can ask me to explain conflicts, trace dependencies across emails and calendar events, or suggest next steps.",
-      timestamp: '08:45 AM',
-      sourceCitations: [
-        { label: 'Project Polaris Workspace', id: 'proj-polaris', type: 'project' },
-        { label: 'Source C (Authoritative Email)', id: 'src-email-deadline-advancement', type: 'email' }
-      ]
-    }
-  ]);
+  const [traviMessages, setTraviMessages] = useState<TraviMessage[]>(() =>
+    readStoredArray(`${STORAGE_KEY}_travi_messages`, [initialTraviMessage])
+  );
 
   const resetTraviChat = () => {
     setTraviMessages([
       {
         id: 'travi-welcome-reset',
         sender: 'travi',
-        text: "Conversation reset. I am TRAVI, ready to explore your workspace records and explain the context behind your project data.",
+        text: 'Conversation reset. I am TRAVI, your local demo assistant. Ask about records in this workspace to see predefined keyword-based responses.',
         timestamp: 'Just now'
       }
     ]);
@@ -202,97 +207,91 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     setTraviMessages(prev => [...prev, userMsg]);
 
-    // Process query based on live workspace records
-    setTimeout(() => {
-      const q = trimmed.toLowerCase();
-      const currentDeadlineMem = memories.find(m => m.id === 'mem-polaris-deadline');
-      const deadlineAction = actions.find(a => a.id === 'act-update-polaris-deadline');
-      const isActionDone = deadlineAction?.status === 'completed' || deadlineAction?.status === 'approved';
+    const q = trimmed.toLowerCase();
+    const deadlineAction = actions.find(a => a.id === 'act-update-polaris-deadline');
+    const isActionDone = deadlineAction?.status === 'completed' || deadlineAction?.status === 'approved';
 
-      let replyText = '';
-      let citations: { label: string; id: string; type: string }[] = [];
-      let suggestedActionId: string | undefined = undefined;
+    let replyText = '';
+    let citations: { label: string; id: string; type: string }[] = [];
+    let suggestedActionId: string | undefined = undefined;
 
-      if (q.includes('what is trace') || q.includes('about trace') || q.includes('how trace works')) {
-        replyText = "TRACE is a Personal Intelligence and Context-Aware Execution System. Rather than functioning as a passive note archive or generic chat bot, TRACE continuously uncovers relationships between your emails, calendars, meeting notes, and project documents. It detects outdated commitments, flags conflicting deadlines, recommends concrete actions, and awaits your approval before modifying workspace records.";
-        citations = [
-          { label: 'TRACE System Architecture', id: 'mem-polaris-scope', type: 'memory' }
-        ];
-      } else if (q.includes('deadline') || q.includes('conflict') || q.includes('polaris') || q.includes('october')) {
-        replyText = `Here is the verified context behind the Project Polaris deadline conflict:
+    if (q.includes('what is trace') || q.includes('about trace') || q.includes('how trace works')) {
+      replyText = 'TRACE is a local workspace for exploring records, relationships, findings, and actions. TRAVI is a keyword-based demo assistant; its replies are predefined and are not generated by an AI service.';
+      citations = [
+        { label: 'TRACE Workspace Overview', id: 'mem-polaris-scope', type: 'memory' }
+      ];
+    } else if (q.includes('deadline') || q.includes('conflict') || q.includes('polaris') || q.includes('october')) {
+      replyText = `Here is the Project Polaris deadline context in the demo workspace:
 
 1. Initial Kickoff (Source A, Oct 5): Director Sarah Lin originally slated the RFP cutoff for Tuesday, October 20 at 5:00 PM EST.
 2. Authoritative Update (Source C, Oct 11): Sarah Lin notified the core team that the client review board advanced the cutoff by 48 hours to Sunday, October 18 at 11:59 PM EST.
 3. Downstream Risk: The team preparation run (Source B) is currently booked for Monday, October 19 at 2:00 PM — 14 hours after the portal locks.
 4. Current Status: ${
-          isActionDone
-            ? 'The Project Polaris submission deadline in memory has been successfully updated to October 18, 2026, 11:59 PM.'
-            : 'An urgent action to update the deadline to October 18 is currently pending your approval on the Action Board.'
-        }`;
-        citations = [
-          { label: 'Source A (Kickoff Email)', id: 'src-email-polaris-kickoff', type: 'email' },
-          { label: 'Source B (Prep Calendar Event)', id: 'src-cal-prep-session', type: 'calendar' },
-          { label: 'Source C (Urgent Advance Email)', id: 'src-email-deadline-advancement', type: 'email' }
-        ];
-        if (!isActionDone) suggestedActionId = 'act-update-polaris-deadline';
-      } else if (q.includes('record') || q.includes('source') || q.includes('connected') || q.includes('document')) {
-        replyText = `Your workspace currently indexes ${sources.length} primary records for Project Polaris:
-• Email: "Project Polaris Final RFP Timeline & Guidelines" (Sarah Lin, Oct 5)
-• Calendar: "Polaris Final Submission Prep & Verification Run" (Oct 19 session)
-• Email: "URGENT UPDATE: Polaris Client RFP Submission Cutoff Advanced" (Sarah Lin, Oct 11)
-• Document: "Technical Architecture Specification v2.4" (David Chen, Oct 8)
-• Meeting: "Steering Committee Sync Notes: Executive Decision Log" (Oct 9)
-• Note: "Personal Executive Briefing Preferences" (Oct 4)
+        isActionDone
+          ? 'The suggested deadline update has been approved in the local workspace.'
+          : 'A suggested deadline update is available for review on the Action Board.'
+      }`;
+      citations = [
+        { label: 'Source A (Kickoff Email)', id: 'src-email-polaris-kickoff', type: 'email' },
+        { label: 'Source B (Prep Calendar Event)', id: 'src-cal-prep-session', type: 'calendar' },
+        { label: 'Source C (Urgent Advance Email)', id: 'src-email-deadline-advancement', type: 'email' }
+      ];
+      if (!isActionDone && deadlineAction) suggestedActionId = deadlineAction.id;
+    } else if (q.includes('record') || q.includes('source') || q.includes('connected') || q.includes('document')) {
+      const listedSources = sources.slice(0, 6);
+      replyText = `Your workspace currently contains ${sources.length} source records:
+${listedSources.map(source => `• ${source.type}: "${source.title}" (${source.date})`).join('\n')}
 
-All records are cross-linked into the Context Graph.`;
-        citations = [
-          { label: 'Source Library (6 Records)', id: 'src-library', type: 'source' },
-          { label: 'Context Graph Topology', id: 'graph', type: 'graph' }
-        ];
-      } else if (q.includes('next') || q.includes('review') || q.includes('what should') || q.includes('recommend')) {
-        if (!isActionDone) {
-          replyText = `Here are the top priorities requiring your attention:
+TRAVI only returns predefined responses and keyword matches from your local workspace.`;
+      citations = [
+        { label: 'Open Source Library', id: 'src-library', type: 'source' },
+        { label: 'Context Graph', id: 'graph', type: 'graph' }
+      ];
+    } else if (q.includes('next') || q.includes('review') || q.includes('what should') || q.includes('recommend')) {
+      if (!isActionDone) {
+        replyText = `Here are the top priorities in the demo workspace:
 1. Urgent: Review and approve Action #act-update-polaris-deadline on the Action Board to synchronize the client submission deadline to October 18.
 2. High: Coordinate with Sarah Lin to reschedule the October 19 preparation run before Sunday midnight.
 3. Advisory: Obtain David Chen's data residency compliance sign-off prior to portal submission.`;
-          suggestedActionId = 'act-update-polaris-deadline';
-        } else {
-          replyText = `The submission deadline conflict has been approved and resolved! Your remaining next steps:
+        if (deadlineAction) suggestedActionId = deadlineAction.id;
+      } else {
+        replyText = `The deadline action has been approved in the local workspace. Remaining demo follow-ups:
 1. Reschedule the team verification session (currently on Oct 19) to Friday, Oct 16 or Saturday, Oct 17.
 2. Confirm David Chen's cloud data residency sign-off packet for the municipal review board.`;
-        }
-        citations = [
-          { label: 'Action Board', id: 'act-board', type: 'action' },
-          { label: 'Trust & Risk Center', id: 'risk-center', type: 'risk' }
-        ];
-      } else {
-        // Semantic keyword match across sources & memories
-        const matchedSources = sources.filter(s => s.title.toLowerCase().includes(q) || s.summary.toLowerCase().includes(q) || s.content.toLowerCase().includes(q));
-        const matchedMemories = memories.filter(m => m.title.toLowerCase().includes(q) || m.value.toLowerCase().includes(q));
+      }
+      citations = [
+        { label: 'Action Board', id: 'act-board', type: 'action' },
+        { label: 'Trust & Risk Center', id: 'risk-center', type: 'risk' }
+      ];
+    } else {
+      const matchedSources = sources.filter(s => s.title.toLowerCase().includes(q) || s.summary.toLowerCase().includes(q) || s.content.toLowerCase().includes(q));
+      const matchedMemories = memories.filter(m => m.title.toLowerCase().includes(q) || m.value.toLowerCase().includes(q));
 
-        if (matchedSources.length > 0 || matchedMemories.length > 0) {
-          replyText = `I located relevant records in your workspace:
+      if (matchedSources.length > 0 || matchedMemories.length > 0) {
+        replyText = `I found keyword matches in your local workspace:
 ${matchedSources.map(s => `• Source: "${s.title}" (${s.date})`).join('\n')}
 ${matchedMemories.map(m => `• Memory: "${m.title}" -> ${m.value}`).join('\n')}
 
-Would you like me to inspect any of these in detail or check for conflicting statements?`;
-          citations = matchedSources.slice(0, 2).map(s => ({ label: s.title, id: s.id, type: s.type }));
-        } else {
-          replyText = `I searched your current workspace records for "${trimmed}" but did not find a direct match. As a strict transparency guarantee, I only reason over verified records in your demo workspace and will not fabricate information. You can ask me about Project Polaris, the deadline advance, Sarah Lin, David Chen, or pending actions.`;
-        }
+Would you like to open one of the matching records?`;
+        citations = [
+          ...matchedSources.slice(0, 2).map(s => ({ label: s.title, id: s.id, type: s.type })),
+          ...matchedMemories.slice(0, 2).map(m => ({ label: m.title, id: m.id, type: 'memory' }))
+        ];
+      } else {
+        replyText = `No keyword match was found for "${trimmed}" in this browser workspace. TRAVI is a local demo assistant with predefined responses, not an AI service. Try a record title, Project Polaris, deadline, Sarah Lin, or pending action.`;
       }
+    }
 
-      const traviReply = {
-        id: `trv-${Date.now()}`,
-        sender: 'travi' as const,
-        text: replyText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        sourceCitations: citations,
-        suggestedActionId
-      };
+    const traviReply: TraviMessage = {
+      id: `trv-${Date.now()}`,
+      sender: 'travi',
+      text: replyText,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sourceCitations: citations,
+      suggestedActionId
+    };
 
-      setTraviMessages(prev => [...prev, traviReply]);
-    }, 400);
+    setTraviMessages(prev => [...prev, traviReply]);
   };
 
   // Sync to localStorage
@@ -306,10 +305,11 @@ Would you like me to inspect any of these in detail or check for conflicting sta
       localStorage.setItem(`${STORAGE_KEY}_timeline`, JSON.stringify(timeline));
       localStorage.setItem(`${STORAGE_KEY}_integrations`, JSON.stringify(integrations));
       localStorage.setItem(`${STORAGE_KEY}_settings`, JSON.stringify(settings));
-    } catch {
-      // LocalStorage quota or access error handled quietly
+      localStorage.setItem(`${STORAGE_KEY}_travi_messages`, JSON.stringify(traviMessages));
+    } catch (error) {
+      console.error('Unable to save TRACE workspace data in browser storage.', error);
     }
-  }, [sources, memories, findings, actions, risks, timeline, integrations, settings]);
+  }, [sources, memories, findings, actions, risks, timeline, integrations, settings, traviMessages]);
 
   const addToast = (type: 'success' | 'warning' | 'info' | 'error', title: string, message: string) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
@@ -682,6 +682,7 @@ Would you like me to inspect any of these in detail or check for conflicting sta
     ]);
     setIntegrations(initialIntegrations);
     setSettings(initialSettings);
+    setTraviMessages([initialTraviMessage]);
     setDemoStep(1);
 
     try {
@@ -693,7 +694,10 @@ Would you like me to inspect any of these in detail or check for conflicting sta
       localStorage.removeItem(`${STORAGE_KEY}_timeline`);
       localStorage.removeItem(`${STORAGE_KEY}_integrations`);
       localStorage.removeItem(`${STORAGE_KEY}_settings`);
-    } catch {}
+      localStorage.removeItem(`${STORAGE_KEY}_travi_messages`);
+    } catch (error) {
+      console.error('Unable to clear saved TRACE workspace data.', error);
+    }
 
     addToast(
       'success',

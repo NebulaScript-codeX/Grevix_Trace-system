@@ -13,6 +13,7 @@ import {
   History, 
   Layers, 
   Settings,
+  Radio,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
@@ -32,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
   const navItems: { tab: NavigationTab; label: string; icon: React.FC<{ className?: string }>; count?: number; countColor?: string }[] = [
     { tab: 'home', label: 'Overview & Vision', icon: TraceLogo },
+    { tab: 'challenge-solution', label: 'Challenge & Solution', icon: Radio },
     { tab: 'travi', label: 'TRAVI Assistant', icon: TraviRobotLogo, countColor: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' },
     { tab: 'command-center', label: 'Command Center', icon: LayoutDashboard },
     { 
@@ -66,12 +68,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
   return (
     <aside
-      className={`h-[calc(100vh-4rem)] bg-[#070b14] border-r border-slate-800/80 flex flex-col transition-all duration-200 shrink-0 sticky top-16 z-20 ${
+      className={`sticky top-16 z-20 flex h-[calc(100vh-4rem)] shrink-0 flex-col border-r border-indigo-200/[0.07] bg-[#080c17]/80 shadow-[12px_0_36px_-34px_rgba(99,102,241,0.8)] backdrop-blur-xl transition-all duration-300 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
       {/* Sidebar header toggle */}
-      <div className="p-3 border-b border-slate-800/60 flex items-center justify-between">
+      <div className="flex items-center justify-between border-b border-white/[0.06] p-3">
         {!collapsed && (
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-2">
             Navigation
@@ -79,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className={`text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/80 transition-colors ${collapsed ? 'mx-auto' : ''}`}
+          className={`rounded-lg p-1 text-slate-400 transition-colors hover:bg-indigo-400/10 hover:text-white ${collapsed ? 'mx-auto' : ''}`}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -96,14 +98,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
             <button
               key={item.tab}
               onClick={() => setActiveTab(item.tab)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all group ${
+              aria-label={item.label}
+              className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-xs font-medium transition-all ${
                 isActive
-                  ? 'bg-blue-600/15 text-blue-400 font-semibold border border-blue-500/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'border-indigo-300/15 bg-gradient-to-r from-indigo-500/15 via-blue-500/[0.08] to-transparent font-semibold text-blue-200 shadow-[inset_2px_0_0_rgba(103,232,249,0.8)]'
+                  : 'border-transparent text-slate-400 hover:border-white/[0.05] hover:bg-white/[0.035] hover:text-slate-100'
               }`}
               title={collapsed ? item.label : undefined}
             >
-              <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-200'}`} />
+              <Icon className={`h-4 w-4 shrink-0 transition-colors ${isActive ? 'text-cyan-200' : 'text-slate-400 group-hover:text-slate-200'}`} />
               
               {!collapsed && (
                 <div className="flex-1 flex items-center justify-between min-w-0">
@@ -122,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
 
       {/* Signature CTA shortcut */}
       {!collapsed && (
-        <div className="p-3 mx-2 mb-2 rounded-xl bg-blue-950/30 border border-blue-500/20 text-xs">
+        <div className="trace-glass mx-2 mb-2 rounded-xl border-indigo-300/15 bg-gradient-to-br from-indigo-500/[0.08] to-cyan-500/[0.025] p-3 text-xs">
           <div className="flex items-center gap-1.5 text-blue-400 font-semibold mb-1">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Hackathon Demo</span>
@@ -135,7 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, setCollapsed }) => 
               setDemoStep(1);
               setDemoModalOpen(true);
             }}
-            className="w-full py-1.5 px-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-[11px] transition-colors"
+            className="w-full rounded-lg border border-blue-300/15 bg-gradient-to-r from-blue-600 to-indigo-600 px-2 py-1.5 text-[11px] font-semibold text-white shadow-md shadow-indigo-950/50 transition-all hover:shadow-[0_8px_22px_-12px_rgba(99,102,241,0.8)]"
           >
             Launch Demo Flow
           </button>

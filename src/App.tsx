@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
@@ -21,10 +22,14 @@ import { TimelineAudit } from './components/views/TimelineAudit';
 import { IntegrationsPermissions } from './components/views/IntegrationsPermissions';
 import { SettingsPrivacy } from './components/views/SettingsPrivacy';
 import { TraviView } from './components/views/TraviView';
+import { ChallengeSolution } from './components/views/ChallengeSolution';
 
 const AppContent: React.FC = () => {
   const { activeTab, setActiveTab } = useWorkspace();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
+    window.matchMedia('(max-width: 767px)').matches
+  );
+  const reduceMotion = useReducedMotion();
 
   // Keyboard shortcut: Cmd+K / Ctrl+K opens Universal Search
   useEffect(() => {
@@ -37,6 +42,13 @@ const AppContent: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setActiveTab]);
+
+  useEffect(() => {
+    const mobileSidebar = window.matchMedia('(max-width: 767px)');
+    const handleViewportChange = () => setSidebarCollapsed(mobileSidebar.matches);
+    mobileSidebar.addEventListener('change', handleViewportChange);
+    return () => mobileSidebar.removeEventListener('change', handleViewportChange);
+  }, []);
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -64,6 +76,8 @@ const AppContent: React.FC = () => {
         return <IntegrationsPermissions />;
       case 'settings':
         return <SettingsPrivacy />;
+      case 'challenge-solution':
+        return <ChallengeSolution />;
       case 'travi':
         return <TraviView />;
       default:
@@ -82,8 +96,19 @@ const AppContent: React.FC = () => {
         <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
 
         {/* Content Viewport */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto max-w-[1560px] mx-auto w-full">
-          {renderActiveView()}
+        <main className="relative flex-1 p-4 md:p-7 xl:p-9 overflow-y-auto max-w-[1560px] mx-auto w-full">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeTab}
+              initial={reduceMotion ? false : { opacity: 0, y: 8, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={reduceMotion ? undefined : { opacity: 0, y: -5, filter: 'blur(3px)' }}
+              transition={{ duration: reduceMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
+              className="min-h-full"
+            >
+              {renderActiveView()}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 

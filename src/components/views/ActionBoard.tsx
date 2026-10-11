@@ -50,7 +50,7 @@ export const ActionBoard: React.FC = () => {
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#0d1322] rounded-xl border border-slate-800">
-        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
+        <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
           <span className="text-[11px] font-medium text-slate-400 px-2">State:</span>
           {(['all', 'pending', 'completed', 'rejected'] as const).map(tab => (
             <button
@@ -67,7 +67,7 @@ export const ActionBoard: React.FC = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
+        <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
           <span className="text-[11px] font-medium text-slate-400 px-2">Priority:</span>
           {(['all', 'urgent', 'high', 'medium', 'low'] as const).map(p => (
             <button

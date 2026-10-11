@@ -70,7 +70,7 @@ export const IntelligenceCenter: React.FC = () => {
 
       {/* Filter Segmented Controls (Using functional buttons without pill badges) */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#0d1322] rounded-xl border border-slate-800">
-        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
+        <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
           <span className="text-[11px] font-medium text-slate-400 px-2">Severity:</span>
           {(['all', 'critical', 'warning', 'advisory'] as const).map(sev => (
             <button
@@ -87,7 +87,7 @@ export const IntelligenceCenter: React.FC = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
+        <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
           <span className="text-[11px] font-medium text-slate-400 px-2">Status:</span>
           {(['all', 'open', 'reviewed', 'resolved', 'dismissed'] as const).map(st => (
             <button
@@ -138,7 +138,7 @@ export const IntelligenceCenter: React.FC = () => {
                 {/* Header row */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded border ${sevColor}`}>
                         {finding.severity}
                       </span>
@@ -205,7 +205,7 @@ export const IntelligenceCenter: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {finding.status === 'open' && (
                       <button
                         onClick={() => reviewFinding(finding.id)}

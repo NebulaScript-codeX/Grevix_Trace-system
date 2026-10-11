@@ -1,6 +1,5 @@
 {
   "name": "TRACE",
-  "description": "See the connections. Know what matters. AI-powered Personal Intelligence and Context-Aware Execution System.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "description": "A local personal intelligence and context-aware execution workspace.",
+  "requestFramePermissions": []
 }

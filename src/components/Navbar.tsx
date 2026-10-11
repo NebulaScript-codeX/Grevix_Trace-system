@@ -24,16 +24,16 @@ export const Navbar: React.FC = () => {
   ];
 
   return (
-    <header className="h-16 px-6 bg-[#090e1a]/95 border-b border-slate-800/80 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between gap-8">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-indigo-200/[0.08] bg-[#080c17]/85 px-4 shadow-[0_12px_40px_-30px_rgba(99,102,241,0.5)] backdrop-blur-2xl sm:px-6 lg:gap-8">
       {/* Zone 1: Single text element wordmark */}
       <div className="flex items-center gap-3 shrink-0">
         <a 
           href="#home" 
           onClick={(e) => { e.preventDefault(); setActiveTab('home'); }}
-          className="text-lg font-extrabold tracking-tight text-white hover:text-blue-400 transition-colors whitespace-nowrap shrink-0 flex items-center gap-2.5"
+          className="flex shrink-0 items-center gap-2.5 whitespace-nowrap text-lg font-extrabold tracking-tight text-white transition-colors hover:text-cyan-200"
         >
           <TraceLogo className="w-7 h-7" />
-          <span className="tracking-widest">TRACE</span>
+          <span className="bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text tracking-[0.2em] text-transparent">TRACE</span>
         </a>
 
         {/* Workspace indicator */}
@@ -47,14 +47,14 @@ export const Navbar: React.FC = () => {
       </div>
 
       {/* Zone 2: Concise single-line navigation links */}
-      <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-400">
+      <nav className="hidden items-center gap-5 text-xs font-semibold text-slate-400 lg:flex xl:gap-6">
         {navLinks.map((link) => (
           <button
             key={link.tab}
             onClick={() => setActiveTab(link.tab)}
-            className={`whitespace-nowrap shrink-0 transition-colors py-1 ${
+            className={`relative shrink-0 whitespace-nowrap py-2 transition-colors ${
               activeTab === link.tab
-                ? 'text-white border-b-2 border-blue-500 font-bold'
+                ? 'font-bold text-white after:absolute after:inset-x-0 after:-bottom-[1.15rem] after:h-0.5 after:rounded-full after:bg-gradient-to-r after:from-blue-400 after:to-cyan-300 after:shadow-[0_0_12px_rgba(34,211,238,0.65)]'
                 : 'hover:text-slate-200'
             }`}
           >
@@ -64,10 +64,10 @@ export const Navbar: React.FC = () => {
       </nav>
 
       {/* Zone 3: Primary Action & TRAVI */}
-      <div className="flex items-center gap-2.5 shrink-0">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
         <button
           onClick={() => setActiveTab('universal-search')}
-          className="hidden xl:flex items-center gap-2 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200 bg-slate-900 hover:bg-slate-800/90 border border-slate-800 rounded-lg transition-colors whitespace-nowrap"
+          className="hidden items-center gap-2 whitespace-nowrap rounded-lg border border-white/[0.08] bg-white/[0.035] px-3 py-1.5 text-xs text-slate-400 transition-colors hover:border-indigo-300/20 hover:bg-indigo-400/[0.08] hover:text-slate-100 xl:flex"
           title="Universal Search"
         >
           <Search className="w-3.5 h-3.5" />
@@ -77,11 +77,11 @@ export const Navbar: React.FC = () => {
 
         <button
           onClick={() => setTraviOpen(true)}
-          className="px-3 py-1.5 text-xs font-semibold text-indigo-200 hover:text-white bg-indigo-950/70 hover:bg-indigo-900/70 border border-indigo-500/30 rounded-lg transition-all flex items-center gap-2 whitespace-nowrap shrink-0 shadow-sm"
+          className="shrink-0 whitespace-nowrap rounded-lg border border-indigo-300/20 bg-gradient-to-r from-indigo-500/15 to-cyan-500/[0.04] px-3 py-1.5 text-xs font-semibold text-indigo-100 shadow-sm transition-all hover:border-cyan-200/30 hover:shadow-[0_8px_24px_-14px_rgba(99,102,241,0.8)]"
           title="Meet TRAVI Assistant"
         >
           <TraviRobotLogo className="w-5 h-5" />
-          <span>Meet TRAVI</span>
+          <span className="hidden sm:inline">Meet TRAVI</span>
         </button>
 
         <button
@@ -89,13 +89,12 @@ export const Navbar: React.FC = () => {
             setDemoStep(1);
             setDemoModalOpen(true);
           }}
-          className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-lg transition-all shadow-md shadow-blue-600/20 flex items-center gap-1.5 whitespace-nowrap shrink-0"
+          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-blue-300/15 bg-gradient-to-r from-blue-600 to-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-indigo-950/50 transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_25px_-10px_rgba(59,130,246,0.8)]"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Interactive Demo</span>
+          <span className="hidden sm:inline">Interactive Demo</span>
         </button>
       </div>
     </header>
   );
 };
-

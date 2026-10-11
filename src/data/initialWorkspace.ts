@@ -543,16 +543,6 @@ export const initialIntegrations: IntegrationService[] = [
     iconName: 'FileText'
   },
   {
-    id: 'int-real-gemini',
-    name: 'Gemini Analysis Pipeline',
-    category: 'ai',
-    status: 'available',
-    permissions: ['Zero-retention context query', 'Entity relationship extraction'],
-    capabilities: ['Semantic contradiction analysis', 'Context summarization', 'Risk evaluation'],
-    description: 'Server-side intelligence pipeline for deep context synthesis. Fallback deterministic engine available.',
-    iconName: 'Cpu'
-  },
-  {
     id: 'int-slack',
     name: 'Team Collaboration Channels',
     category: 'collaboration',
