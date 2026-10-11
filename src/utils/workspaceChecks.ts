@@ -96,11 +96,130 @@ const isValidDate = (value: string): boolean => {
   return Number.isFinite(date.getTime());
 };
 
+const datePattern =
+  /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2},?\s+\d{4}\b|\b\d{4}-\d{2}-\d{2}\b/gi;
+
+const canonicalDate = (value: string): string | undefined => {
+  const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  let year: number;
+  let month: number;
+  let day: number;
+
+  if (iso) {
+    year = Number(iso[1]);
+    month = Number(iso[2]);
+    day = Number(iso[3]);
+  } else {
+    const named = value.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})$/);
+    if (!named) return undefined;
+    const monthNumber = new Map([
+      ['jan', 1], ['feb', 2], ['mar', 3], ['apr', 4], ['may', 5], ['jun', 6],
+      ['jul', 7], ['aug', 8], ['sep', 9], ['oct', 10], ['nov', 11], ['dec', 12]
+    ]).get(named[1].slice(0, 3).toLowerCase());
+    if (!monthNumber) return undefined;
+    month = monthNumber;
+    day = Number(named[2]);
+    year = Number(named[3]);
+  }
+
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (parsed.getUTCFullYear() !== year
+    || parsed.getUTCMonth() !== month - 1
+    || parsed.getUTCDate() !== day) return undefined;
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
 const extractDates = (value: string): string[] => {
-  const matches = value.match(
-    /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:,?\s+\d{4})?|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/gi
-  ) ?? [];
-  return [...new Set(matches.map(date => normalize(date)))];
+  const matches = value.match(datePattern) ?? [];
+  return [...new Set(matches.map(date => canonicalDate(date)).filter((date): date is string => Boolean(date)))];
+};
+
+const deadlineDateKey = (value: string, suffix: string): string | undefined => {
+  const dateKey = canonicalDate(value);
+  if (!dateKey) return undefined;
+  const time = suffix.match(/^\s*,?\s*(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\b/i);
+  if (time) {
+    let hour = Number(time[1]) % 12;
+    if (time[3].toUpperCase() === 'PM') hour += 12;
+    return `${dateKey}T${String(hour).padStart(2, '0')}:${time[2] ?? '00'}`;
+  }
+  const twentyFourHourTime = suffix.match(/^\s*,?\s*(?:T\s*)?(?:at\s+)?([01]?\d|2[0-3]):([0-5]\d)\b/);
+  return twentyFourHourTime
+    ? `${dateKey}T${String(Number(twentyFourHourTime[1])).padStart(2, '0')}:${twentyFourHourTime[2]}`
+    : dateKey;
+};
+
+export const getDeadlineDateKeys = (value: string): string[] => {
+  const matches = [...value.matchAll(new RegExp(datePattern.source, 'gi'))];
+  return [...new Set(matches.flatMap(match => {
+    const key = deadlineDateKey(match[0], value.slice((match.index ?? 0) + match[0].length));
+    return key ? [key] : [];
+  }))];
+};
+
+export const deadlineValuesAgree = (first: string, second: string): boolean => {
+  const firstKeys = getDeadlineDateKeys(first);
+  const secondKeys = getDeadlineDateKeys(second);
+  return firstKeys.some(firstKey => secondKeys.some(secondKey => {
+    const [firstDate, firstTime] = firstKey.split('T');
+    const [secondDate, secondTime] = secondKey.split('T');
+    return firstDate === secondDate && (!firstTime || !secondTime || firstTime === secondTime);
+  }));
+};
+
+const deadlineValue = (value: string, suffix: string): string => {
+  const time = suffix.match(/^\s*,?\s*(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i)
+    ?? suffix.match(/^\s*,?\s*(?:T\s*)?(?:at\s+)?(?:[01]?\d|2[0-3]):[0-5]\d\b/);
+  return time ? `${value} ${time[0].trim()}` : value;
+};
+
+export const extractDeadlineValuesFromText = (value: string): string[] => {
+  const lines = value.split(/\r?\n/);
+  const claims: Array<{ value: string; segment: string }> = [];
+
+  lines.forEach((line, lineIndex) => {
+    const segments = line.split(/(?<=[.!?])\s+/);
+    for (const segment of segments) {
+      const cueIndex = segment.search(/\b(?:deadline|due date|cutoff|submission)\b/i);
+      if (cueIndex < 0) continue;
+      const matches = [...segment.matchAll(new RegExp(datePattern.source, 'gi'))];
+      const afterCue = matches.filter(match => (match.index ?? -1) >= cueIndex);
+      const selected = afterCue.length > 0
+        ? /\bfrom\b[\s\S]*\bto\b/i.test(segment) ? afterCue[afterCue.length - 1] : afterCue[0]
+        : matches.length === 1 ? matches[0] : undefined;
+      const historicalOnly = /\b(?:previous|former|old|original|superseded)\b/i.test(segment)
+        && !/\b(?:new|updated|revised|binding|current|changed to|advanced to)\b/i.test(segment);
+      if (!historicalOnly && selected?.[0] && canonicalDate(selected[0])) {
+        const selectedIndex = selected.index ?? 0;
+        claims.push({
+          value: deadlineValue(selected[0], segment.slice(selectedIndex + selected[0].length)),
+          segment
+        });
+      }
+
+      if (segment.trimEnd().endsWith(':')) {
+        const nextLine = lines.slice(lineIndex + 1).find(candidate => candidate.trim());
+        const nextDate = nextLine?.match(datePattern)?.[0];
+        if (!historicalOnly && nextDate && canonicalDate(nextDate)) {
+          const nextDateIndex = nextLine?.indexOf(nextDate) ?? 0;
+          claims.push({
+            value: deadlineValue(nextDate, nextLine?.slice(nextDateIndex + nextDate.length) ?? ''),
+            segment
+          });
+        }
+      }
+    }
+  });
+
+  const uniqueValues = [...new Map(claims.map(claim =>
+    [getDeadlineDateKeys(claim.value)[0], claim.value])).values()];
+  if (uniqueValues.length <= 1) return uniqueValues;
+  const currentClaims = claims.filter(claim =>
+    /\b(?:new|updated|revised|binding|current|changed to|advanced to|moved forward|moved back)\b/i.test(claim.segment)
+    && !/\b(?:previous|former|old|original|superseded)\b/i.test(claim.segment));
+  const currentValues = [...new Map(currentClaims.map(claim =>
+    [getDeadlineDateKeys(claim.value)[0], claim.value])).values()];
+  return currentValues.length === 1 ? currentValues : [];
 };
 
 const checkSuspiciousContent = (source: SourceRecord): WorkspaceCheck | undefined => {
@@ -240,7 +359,7 @@ export const analyzeWorkspace = (
 
     if (memory.category !== 'deadlines' || !trimmed(memory.value)) continue;
     const projectNames = valuesOf(memory.relatedEntities).filter(entity => /^project\b/i.test(entity));
-    const memoryDates = extractDates(trimmed(memory.value));
+    const memoryDates = getDeadlineDateKeys(trimmed(memory.value));
     if (memoryDates.length === 0) continue;
     const candidates = safeSources.filter(candidate => {
       if (!projectNames.some(project => valuesOf(candidate.entities?.projects).includes(project))) return false;
@@ -248,28 +367,33 @@ export const analyzeWorkspace = (
         && !/\b(deadline|cutoff)\b/i.test(trimmed(candidate.title))) return false;
       const sourceClaimsDeadline = /\b(deadline|due date|cutoff|submission)\b/i
         .test(`${trimmed(candidate.title)} ${trimmed(candidate.summary)} ${trimmed(candidate.content)}`);
-      return sourceClaimsDeadline && (Array.isArray(candidate.entities?.deadlines)
-        ? candidate.entities.deadlines.length > 0
-        : true);
+      return sourceClaimsDeadline && extractDeadlineValuesFromText(candidate.content).length > 0;
     });
+    const claims = candidates.flatMap(candidate => {
+      const dates = extractDeadlineValuesFromText(candidate.content);
+      return dates.map(date => ({ candidate, date }));
+    });
+    const sourceTimestamps = candidates.map(candidate => Date.parse(candidate.date)).filter(Number.isFinite);
+    const latestTimestamp = sourceTimestamps.length ? Math.max(...sourceTimestamps) : undefined;
+    const currentClaims = latestTimestamp === undefined
+      ? claims
+      : claims.filter(claim => Date.parse(claim.candidate.date) === latestTimestamp);
     const conflicts: string[] = [];
     const conflictingSourceIds: string[] = [];
     const linkedSource = safeSources.find(item => item.id === memory.sourceId);
-    for (const candidate of candidates) {
-      const sourceDates = extractDates(valuesOf(candidate.entities?.deadlines).join('\n'));
-      const differs = sourceDates.some(date => !memoryDates.includes(date));
-      if (!differs) continue;
-      conflicts.push(`Different source: “${trimmed(candidate.title)}” — ${valuesOf(candidate.entities?.deadlines).join('; ') || sourceDates.join('; ')}`);
-      conflictingSourceIds.push(candidate.id);
+    for (const claim of currentClaims) {
+      if (deadlineValuesAgree(trimmed(memory.value), claim.date)) continue;
+      conflicts.push(`Current deadline evidence: “${trimmed(claim.candidate.title)}” (${claim.candidate.id}) — ${claim.date}`);
+      conflictingSourceIds.push(claim.candidate.id);
     }
     if (conflicts.length > 0) {
       checks.push(memoryCheck(
         memory,
         'conflict',
         'Deadline information disagrees',
-        'A source for the same project gives a different date. The disagreement needs review; this check cannot decide which date is correct.',
+        'The latest dated source claim for this project gives a different deadline from the saved detail. Compare the cited records before changing the memory.',
         [
-          `Saved detail: “${trimmed(memory.title)}” — ${trimmed(memory.value)}${linkedSource ? ` (source: ${trimmed(linkedSource.title)})` : ''}`,
+          `Saved detail: “${trimmed(memory.title)}” (${memory.id}) — ${trimmed(memory.value)}${linkedSource ? ` (source: ${trimmed(linkedSource.title)}, ${linkedSource.id})` : ''}`,
           ...conflicts
         ],
         'Compare the original records and confirm which date is current before updating the saved detail.',
@@ -287,13 +411,17 @@ export const analyzeWorkspace = (
       if (!valuesOf(source.entities?.projects).includes(project)) return [];
       if (source.type === 'calendar'
         && !/\b(deadline|cutoff)\b/i.test(trimmed(source.title))) return [];
-      const deadlineValues = valuesOf(source.entities?.deadlines);
       const claimText = `${trimmed(source.title)} ${trimmed(source.summary)} ${trimmed(source.content)}`;
+      const deadlineValues = extractDeadlineValuesFromText(source.content);
       if (deadlineValues.length === 0 || !/\b(deadline|due date|cutoff|submission)\b/i.test(claimText)) return [];
-      const dates = [...new Set(deadlineValues.flatMap(extractDates))];
+      const dates = [...new Set(deadlineValues.flatMap(getDeadlineDateKeys))];
       return dates.length > 0 ? [{ source, deadlineValues, dates }] : [];
     });
-    if (new Set(claims.flatMap(claim => claim.dates)).size < 2 || claims.length < 2) continue;
+    const sourceClaims = claims.flatMap(claim =>
+      claim.deadlineValues.map(value => ({ source: claim.source, value })));
+    const hasConflict = sourceClaims.some((claim, index) =>
+      sourceClaims.slice(index + 1).some(other => !deadlineValuesAgree(claim.value, other.value)));
+    if (!hasConflict || claims.length < 2) continue;
     const first = claims[0];
     checks.push(sourceCheck(
       first.source,
@@ -317,7 +445,9 @@ export const getRecordCheckStatus = (
   sources: SourceRecord[],
   memory?: MemoryRecord
 ): RecordCheckStatus => {
-  const recordChecks = checks.filter(check => check.recordType === recordType && check.recordId === recordId);
+  const recordChecks = checks.filter(check =>
+    check.recordType === recordType && check.recordId === recordId
+    || recordType === 'source' && check.kind === 'conflict' && check.sourceIds.includes(recordId));
   const priority: WorkspaceCheckKind[] = ['conflict', 'suspicious', 'invalid', 'incomplete', 'unverified'];
   const selected = priority
     .map(kind => recordChecks.find(check => check.kind === kind))

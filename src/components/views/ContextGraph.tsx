@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { 
   ReactFlow, 
   Background, 
@@ -107,6 +107,9 @@ export const ContextGraph: React.FC = () => {
       let x = 120;
       let y = 200;
       let borderCol = '#475569';
+      const hasDeadlineConflict = workspaceChecks.some(check =>
+        check.kind === 'conflict' && check.sourceIds.includes(src.id));
+      if (hasDeadlineConflict) borderCol = '#f43f5e';
 
       if (src.id === 'src-email-polaris-kickoff') {
         x = 100;
@@ -196,6 +199,22 @@ export const ContextGraph: React.FC = () => {
           labelStyle: { fill: '#fbbf24', fontSize: 9, fontWeight: 600 }
         });
       }
+
+      if (!['src-email-polaris-kickoff', 'src-email-deadline-advancement', 'src-cal-prep-session'].includes(src.id)
+        && src.entities.projects.includes('Project Polaris')) {
+        rawEdges.push({
+          id: `edge-${src.id}-polaris`,
+          source: src.id,
+          target: 'proj-polaris',
+          label: hasDeadlineConflict ? 'CONFLICTING DEADLINE EVIDENCE' : 'LINKED SOURCE',
+          style: { stroke: hasDeadlineConflict ? '#f43f5e' : '#64748b' },
+          labelStyle: {
+            fill: hasDeadlineConflict ? '#f43f5e' : '#94a3b8',
+            fontSize: 9,
+            fontWeight: hasDeadlineConflict ? 700 : 500
+          }
+        });
+      }
     });
 
     // Deadlines & Memories Nodes
@@ -242,8 +261,13 @@ export const ContextGraph: React.FC = () => {
     return { initialNodes: rawNodes, initialEdges: rawEdges };
   }, [sources, memories, workspaceChecks]);
 
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  useEffect(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialEdges, initialNodes, setEdges, setNodes]);
 
   // Filter nodes based on type and search query
   const displayedNodes = useMemo(() => {

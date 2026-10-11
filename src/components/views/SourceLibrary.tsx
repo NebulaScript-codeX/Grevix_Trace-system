@@ -15,7 +15,7 @@ import {
   Tag
 } from 'lucide-react';
 import { SourceRecord, SourceType } from '../../types';
-import { getRecordCheckStatus } from '../../utils/workspaceChecks';
+import { extractDeadlineValuesFromText, getRecordCheckStatus } from '../../utils/workspaceChecks';
 
 export const SourceLibrary: React.FC = () => {
   const { sources, workspaceChecks, addSource, deleteSource, setSelectedItem } = useWorkspace();
@@ -68,7 +68,8 @@ export const SourceLibrary: React.FC = () => {
       author: newAuthor.trim() || undefined,
       entities: {
         people: newAuthor ? [newAuthor] : [],
-        projects: mentionedProjects
+        projects: mentionedProjects,
+        deadlines: extractDeadlineValuesFromText(newContent.trim())
       },
       extractedDetails: extracted.length > 0 ? extracted : ['User submitted context note'],
       isDemo: false
@@ -204,6 +205,7 @@ export const SourceLibrary: React.FC = () => {
                 title={getRecordCheckStatus('source', source.id, workspaceChecks, sources).explanation}
                 className={`text-[10px] font-mono uppercase font-semibold ${
                   getRecordCheckStatus('source', source.id, workspaceChecks, sources).kind === 'suspicious'
+                    || getRecordCheckStatus('source', source.id, workspaceChecks, sources).kind === 'conflict'
                     ? 'text-rose-400'
                     : getRecordCheckStatus('source', source.id, workspaceChecks, sources).kind === 'incomplete'
                       || getRecordCheckStatus('source', source.id, workspaceChecks, sources).kind === 'invalid'

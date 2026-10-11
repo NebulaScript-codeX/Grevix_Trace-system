@@ -66,7 +66,7 @@ interface WorkspaceContextType {
   setSelectedItem: (item: { type: 'source' | 'memory' | 'finding' | 'action' | 'risk'; item: any } | null) => void;
 
   // CRUD & State actions
-  approveAction: (actionId: string) => void;
+  approveAction: (actionId: string) => boolean;
   rejectAction: (actionId: string, reason?: string) => void;
   executeActionSimulation: (actionId: string) => void;
   reviewFinding: (findingId: string) => void;
@@ -185,6 +185,33 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     readStoredArray(`${STORAGE_KEY}_travi_messages`, [initialTraviMessage])
   );
   const workspaceChecks = useMemo(() => analyzeWorkspace(sources, memories), [sources, memories]);
+  const liveFindings = useMemo(() => {
+    if (!settings.autoDetectRisks) return findings;
+    const additions = workspaceChecks
+      .filter(check => check.kind === 'conflict'
+        && check.recordType === 'memory'
+        && check.sourceIds.some(id => sources.some(source => source.id === id && !source.isDemo))
+        && 0.92 >= settings.confidenceThreshold)
+      .map(check => ({
+        id: `live-${check.id}`,
+        title: `Deadline conflict detected for ${check.recordTitle}`,
+        explanation: check.explanation,
+        severity: 'warning' as const,
+        category: 'conflict' as const,
+        confidence: 0.92,
+        supportingEvidence: check.evidence,
+        sourceIds: check.sourceIds,
+        relatedEntities: {
+          people: [],
+          projects: memories.find(memory => memory.id === check.recordId)?.relatedEntities
+            .filter(entity => /^project\b/i.test(entity)) ?? []
+        },
+        whyItMatters: 'The latest source and saved deadline disagree. Confirm the source before changing the saved value.',
+        status: 'open' as const,
+        detectedAt: new Date().toISOString()
+      }));
+    return [...additions, ...findings];
+  }, [findings, memories, settings.autoDetectRisks, settings.confidenceThreshold, sources, workspaceChecks]);
 
   const resetTraviChat = () => {
     setTraviMessages([
@@ -211,7 +238,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const answer = buildTraviResponse(trimmed, traviMessages, {
       sources,
       memories,
-      findings,
+      findings: liveFindings,
       actions,
       risks,
       workspaceChecks
@@ -267,30 +294,31 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   // Approve action & execute verified update
-  const approveAction = (actionId: string) => {
+  const approveAction = (actionId: string): boolean => {
     const targetAction = actions.find(a => a.id === actionId);
-    if (!targetAction) return;
+    if (!targetAction) return false;
 
     let updatedValueSummary = '';
-    // Apply proposed change if defined
     if (targetAction.proposedChange) {
-      const { targetId, field, toValue, fromValue } = targetAction.proposedChange;
-      setMemories(prev =>
-        prev.map(mem => {
-          if (mem.id === targetId) {
-            updatedValueSummary = `${mem.title}: "${fromValue}" → "${toValue}"`;
-            return {
-              ...mem,
-              [field]: toValue,
-              verificationStatus: 'unverified',
-              updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-              sourceRef: 'Updated from an approved TRACE action; source confirmation is still needed.',
-              sourceId: undefined
-            };
-          }
-          return mem;
-        })
-      );
+      const { targetType, targetId, field, toValue, fromValue } = targetAction.proposedChange;
+      const targetMemory = targetType === 'memory' ? memories.find(memory => memory.id === targetId) : undefined;
+      if (!targetMemory || field !== 'value'
+        || (targetMemory.value !== fromValue && targetMemory.value !== toValue)) {
+        addToast('error', 'Action Not Applied', 'The target memory is missing or has changed. No workspace records were modified.');
+        return false;
+      }
+
+      if (targetMemory.value !== toValue) {
+        updatedValueSummary = `${targetMemory.title}: "${targetMemory.value}" → "${toValue}"`;
+        setMemories(prev => prev.map(memory => memory.id === targetId ? {
+          ...memory,
+          value: toValue,
+          verificationStatus: 'unverified',
+          updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          sourceRef: 'Updated from an approved TRACE action; source confirmation is still needed.',
+          sourceId: undefined
+        } : memory));
+      }
     }
 
     // Update Action status
@@ -366,6 +394,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ? `Applied update: ${updatedValueSummary}` 
         : `Approved "${targetAction.title}"`
     );
+    return true;
   };
 
   const rejectAction = (actionId: string, reason?: string) => {
@@ -569,6 +598,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     addToast('success', 'Source Indexed', `Indexed "${newSource.title}".`);
+    if (settings.notifyOnConflict) {
+      const conflict = analyzeWorkspace([...sources, newSource], memories)
+        .find(check => check.kind === 'conflict' && check.sourceIds.includes(newSource.id));
+      if (conflict) {
+        addToast('warning', 'Conflicting Deadline Detected', conflict.explanation);
+      }
+    }
   };
 
   const updateSource = (id: string, updates: Partial<SourceRecord>) => {
@@ -650,11 +686,11 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const metrics = {
     totalSources: sources.length,
     totalMemories: memories.length,
-    openFindings: findings.filter(f => f.status === 'open').length,
+    openFindings: liveFindings.filter(f => f.status === 'open').length,
     pendingActions: actions.filter(a => a.status === 'pending_approval' || a.status === 'suggested').length,
     verifiedActions: actions.filter(a => a.status === 'approved' || a.status === 'completed').length,
     unreviewedRisks: risks.filter(r => r.status === 'unreviewed').length,
-    criticalFindings: findings.filter(f => f.severity === 'critical' && f.status === 'open').length
+    criticalFindings: liveFindings.filter(f => f.severity === 'critical' && f.status === 'open').length
   };
 
   return (
@@ -662,7 +698,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       value={{
         sources,
         memories,
-        findings,
+        findings: liveFindings,
         actions,
         risks,
         workspaceChecks,

@@ -20,7 +20,7 @@ export const SettingsPrivacy: React.FC = () => {
   const [confidenceThreshold, setConfidenceThreshold] = useState(settings.confidenceThreshold);
   const [autoDetectRisks, setAutoDetectRisks] = useState(settings.autoDetectRisks);
   const [notifyOnConflict, setNotifyOnConflict] = useState(settings.notifyOnConflict);
-  const [auditRetentionDays, setAuditRetentionDays] = useState(settings.auditRetentionDays);
+  const auditRetentionDays = settings.auditRetentionDays;
   const [confirmReset, setConfirmReset] = useState(false);
 
   const handleSavePreferences = (e: React.FormEvent) => {
@@ -30,8 +30,7 @@ export const SettingsPrivacy: React.FC = () => {
       workspaceName,
       confidenceThreshold,
       autoDetectRisks,
-      notifyOnConflict,
-      auditRetentionDays
+      notifyOnConflict
     });
     addToast('success', 'Preferences Saved', 'Workspace settings successfully updated.');
   };
@@ -131,14 +130,14 @@ export const SettingsPrivacy: React.FC = () => {
                 className="w-full accent-blue-600 bg-slate-900 h-2 rounded-lg cursor-pointer"
               />
               <p className="text-[11px] text-slate-500 mt-1">
-                Choose a confidence level for future findings. The sample findings in this demo stay the same.
+                Live deadline findings below this confidence level are not generated. Existing sample findings remain visible.
               </p>
             </div>
 
             <div className="flex items-center justify-between pt-3 border-t border-slate-800">
               <div>
-                <div className="font-semibold text-white">Flag Meetings After Deadlines</div>
-                <div className="text-[11px] text-slate-400">Save whether you want meetings after deadlines flagged. Sample findings in this demo stay the same.</div>
+                <div className="font-semibold text-white">Generate Findings for New Deadline Conflicts</div>
+                <div className="text-[11px] text-slate-400">Generate live findings when an ingested source conflicts with a saved deadline.</div>
               </div>
               <input
                 type="checkbox"
@@ -172,15 +171,17 @@ export const SettingsPrivacy: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block text-slate-400 font-medium mb-1.5">Preferred Activity History Period (Days)</label>
+              <label className="block text-slate-400 font-medium mb-1.5">Activity History Retention (Planned)</label>
               <input
                 type="number"
                 min="7"
                 max="365"
                 value={auditRetentionDays}
-                onChange={e => setAuditRetentionDays(parseInt(e.target.value) || 90)}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
+                disabled
+                aria-label="Activity history retention, planned"
+                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-500 font-mono cursor-not-allowed"
               />
+              <p className="text-[11px] text-slate-500 mt-1">Retention controls are planned; existing activity is currently kept in this browser.</p>
             </div>
             <div>
               <label className="block text-slate-400 font-medium mb-1.5">Where Your Data Is Saved</label>

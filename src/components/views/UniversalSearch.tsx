@@ -135,7 +135,8 @@ export const UniversalSearch: React.FC = () => {
 
   const highlightMatches = (text: string, term: string) => {
     if (!term.trim()) return text;
-    const parts = text.split(new RegExp(`(${term})`, 'gi'));
+    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const parts = text.split(new RegExp(`(${escapedTerm})`, 'gi'));
     return parts.map((part, i) =>
       part.toLowerCase() === term.toLowerCase() ? (
         <mark key={i} className="bg-blue-500/30 text-blue-200 px-0.5 rounded font-semibold">

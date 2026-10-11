@@ -12,7 +12,9 @@ export const DetailModal: React.FC = () => {
 
   const { type, item } = selectedItem;
   const sourceChecks = type === 'source'
-    ? workspaceChecks.filter(check => check.recordType === 'source' && check.recordId === item.id)
+    ? workspaceChecks.filter(check =>
+      check.recordType === 'source' && check.recordId === item.id
+      || check.kind === 'conflict' && check.sourceIds.includes(item.id))
     : [];
 
   const closeModal = () => setSelectedItem(null);
@@ -90,7 +92,7 @@ export const DetailModal: React.FC = () => {
               </div>
               {sourceChecks.map(check => (
                 <div key={check.id} className={`p-4 rounded-xl border ${
-                  check.kind === 'suspicious'
+                  check.kind === 'suspicious' || check.kind === 'conflict'
                     ? 'bg-rose-950/20 border-rose-500/25'
                     : 'bg-slate-950/60 border-slate-800/80'
                 }`}>

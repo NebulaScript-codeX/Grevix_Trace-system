@@ -6,7 +6,12 @@ import {
   TraviMessage,
   TrustRiskRecord
 } from '../types';
-import { getRecordCheckStatus } from './workspaceChecks';
+import {
+  deadlineValuesAgree,
+  extractDeadlineValuesFromText,
+  getDeadlineDateKeys,
+  getRecordCheckStatus
+} from './workspaceChecks';
 import type { WorkspaceCheck } from './workspaceChecks';
 
 export interface TraviWorkspaceData {
@@ -203,7 +208,10 @@ export const buildTraviResponse = (
     /\btrust\b/, /\bcheck my data\b/, /\bconflict(s|ing)?\b/,
     /\bwarning signs?\b/, /\bred flags?\b/, /\bflagged\b/, /\bwhy was .+ flagged\b/
   ]);
-  if (asksVerification) {
+  const asksDeadlineContext = containsAny(lowered, [
+    /\bdeadline\b/, /\bdue date\b/, /\bcutoff\b/, /\bsubmission\b/, /\breconcil(?:ed|iation)\b/
+  ]);
+  if (asksVerification && !asksDeadlineContext) {
     const directMatches = relevantRecords(retrievalQuestion, data.workspaceChecks, check => {
       const linkedRecords = [
         ...data.sources.filter(source => check.sourceIds.includes(source.id)).flatMap(source => [
@@ -393,8 +401,14 @@ export const buildTraviResponse = (
     return response(taskAnswer, taskCitations, openActions[0]?.id);
   }
 
-  const asksDeadline = containsAny(lowered, [/\bdeadline\b/, /\bdue date\b/, /\bcutoff\b/, /\bsubmission\b/, /\bwhen is\b/, /\bby when\b/, /\bdate\b/]);
-  const asksConflicts = containsAny(lowered, [/\bconflict(s)?\b/, /\bdisagree\b/, /\bcontradict(ion|s|ory)?\b/, /\bchanged\b/, /\bupdate\b/]);
+  const asksDeadline = containsAny(lowered, [
+    /\bdeadline\b/, /\bdue date\b/, /\bcutoff\b/, /\bsubmission\b/, /\bwhen is\b/, /\bby when\b/, /\bdate\b/,
+    /\breconcil(?:ed|iation)\b/
+  ]);
+  const asksConflicts = containsAny(lowered, [
+    /\bconflict(s)?\b/, /\bdisagree\b/, /\bcontradict(ion|s|ory)?\b/, /\bchanged\b/, /\bupdate\b/,
+    /\breconcil(ed|iation)\b/
+  ]);
 
   if (asksDeadline || asksConflicts) {
     if (explicitProject && !knownProjectMention) {
@@ -403,7 +417,7 @@ export const buildTraviResponse = (
 
     const scopedSources = data.sources.filter(source =>
       projectFilter(source.entities.projects)
-      && (source.entities.deadlines?.length
+      && (extractDeadlineValuesFromText(source.content).length > 0
         || source.type === 'calendar' && recordMatches(retrievalQuestion, source.title, source.summary)));
     const scopedMemories = data.memories.filter(memory =>
       projectFilter(memory.relatedEntities)
@@ -426,27 +440,48 @@ export const buildTraviResponse = (
     const conflictFinding = scopedFindings.find(finding => finding.category === 'conflict');
     const dependencyFinding = scopedFindings.find(finding => finding.category === 'dependency');
     const memory = scopedMemories.find(item => item.category === 'deadlines');
-    const updateSource = scopedSources.find(source =>
-      /supersed|new binding|new deadline|advanced/i.test(`${source.title} ${source.summary} ${source.content}`));
-    const sourcesByDate = [...scopedSources].sort((a, b) => b.date.localeCompare(a.date));
+    const sourceDateValues = new Map(scopedSources.map(source =>
+      [source.id, extractDeadlineValuesFromText(source.content)]));
+    const sourcesByDate = scopedSources
+      .filter(source => Number.isFinite(Date.parse(source.date)))
+      .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
     const deadlineClaims = scopedSources
-      .filter(source => (source.entities.deadlines?.length ?? 0) > 0
+      .filter(source => (sourceDateValues.get(source.id)?.length ?? 0) > 0
         && (source.type !== 'calendar' || /\b(deadline|cutoff|due date)\b/i.test(source.title)))
-      .map(source => `• ${source.title} (${source.date}): ${source.entities.deadlines?.join('; ')}`)
+      .map(source => `• ${source.title} (${source.date}): ${sourceDateValues.get(source.id)?.join('; ')}`)
       .slice(0, 4);
-    const conflict = conflictFinding || (deadlineClaims.length > 1 && new Set(
-      scopedSources.flatMap(source => source.entities.deadlines ?? [])
-    ).size > 1);
+    const latestClaimSource = sourcesByDate.find(source => (sourceDateValues.get(source.id)?.length ?? 0) > 0);
+    const latestClaimValues = latestClaimSource ? sourceDateValues.get(latestClaimSource.id) ?? [] : [];
+    const reconciliationAction = memory && data.actions.find(action =>
+      action.proposedChange?.targetId === memory.id
+      && action.approvalStatus === 'approved'
+      && action.status === 'completed'
+      && action.executionResult?.verified === true
+      && action.proposedChange.toValue === memory.value);
+    const isReconciled = Boolean(reconciliationAction
+      && latestClaimSource
+      && latestClaimValues.some(value => memory && deadlineValuesAgree(memory.value, value)));
+    const allDeadlineValues = scopedSources.flatMap(source => {
+      if (source.type === 'calendar' && !/\b(deadline|cutoff|due date)\b/i.test(source.title)) return [];
+      return sourceDateValues.get(source.id) ?? [];
+    });
+    const hasSourceConflict = allDeadlineValues.some((value, index) =>
+      allDeadlineValues.slice(index + 1).some(other => !deadlineValuesAgree(value, other)));
+    const conflict = conflictFinding || hasSourceConflict;
     let answer = '';
 
-    if (conflict) {
+    if (isReconciled && memory && latestClaimSource && reconciliationAction) {
+      answer = `The approved deadline action was applied in this workspace. The saved detail “${memory.title}” now matches the latest deadline claim in “${latestClaimSource.title}” (${latestClaimValues.join('; ')}). The saved memory is reconciled with that current source; earlier records may still show the superseded date. This checks workspace records only and does not externally verify the source.`;
+      citations.push(
+        { id: memory.id, title: memory.title, type: 'memory' },
+        { id: latestClaimSource.id, title: latestClaimSource.title, type: latestClaimSource.type },
+        { id: reconciliationAction.id, title: reconciliationAction.title, type: 'action' }
+      );
+    } else if (conflict) {
       answer = `The saved records disagree${projectNames.length ? ` about ${projectNames.join(', ')}` : ''}:\n${deadlineClaims.join('\n') || conflictFinding?.explanation || ''}`;
       if (memory) {
         const status = getRecordCheckStatus('memory', memory.id, data.workspaceChecks, data.sources, memory);
         answer += `\n\nThe saved project detail still says “${memory.value}” and its current check status is ${status.label}. ${status.explanation}`;
-      }
-      if (updateSource) {
-        answer += ` The newer source says it replaces the earlier date. It gives ${updateSource.entities.deadlines?.join('; ') || 'an updated deadline'}. This is the latest date in the sources, but the saved project detail has not been updated yet.`;
       }
       const relevantAction = data.actions.find(action =>
         action.proposedChange?.targetId === memory?.id
@@ -468,7 +503,7 @@ export const buildTraviResponse = (
     } else if (memory) {
       const status = getRecordCheckStatus('memory', memory.id, data.workspaceChecks, data.sources, memory);
       answer = `The saved project detail for ${memory.title} is “${memory.value}” (${status.label}). ${status.explanation}`;
-      if (sourcesByDate[0]) answer += ` The latest matching source is “${sourcesByDate[0].title}” dated ${sourcesByDate[0].date}.`;
+      if (latestClaimSource) answer += ` The latest matching source is “${latestClaimSource.title}” dated ${latestClaimSource.date}.`;
     } else if (deadlineClaims.length) {
       answer = `The matching source${deadlineClaims.length === 1 ? ' says' : 's say'}:\n${deadlineClaims.join('\n')}`;
     } else {

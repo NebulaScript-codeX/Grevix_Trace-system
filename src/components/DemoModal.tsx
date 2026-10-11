@@ -31,6 +31,7 @@ export const DemoModal: React.FC = () => {
     findings, 
     actions, 
     approveAction, 
+    rejectAction,
     resetDemoWorkspace,
     setSelectedItem,
     setActiveTab
@@ -44,6 +45,12 @@ export const DemoModal: React.FC = () => {
   const polarisDeadlineMemory = memories.find(m => m.id === 'mem-polaris-deadline');
   const polarisAction = actions.find(a => a.id === 'act-update-polaris-deadline');
   const polarisFinding = findings.find(f => f.id === 'find-deadline-conflict');
+  const polarisProposedValue = polarisAction?.proposedChange?.toValue;
+  const approvedAndApplied = approvalDecision === 'approved'
+    && polarisAction?.approvalStatus === 'approved'
+    && polarisAction.status === 'completed'
+    && polarisAction.executionResult?.verified === true
+    && Boolean(polarisDeadlineMemory && polarisDeadlineMemory.value === polarisProposedValue);
 
   const sourceA = sources.find(s => s.id === 'src-email-polaris-kickoff')!;
   const sourceB = sources.find(s => s.id === 'src-cal-prep-session')!;
@@ -58,12 +65,18 @@ export const DemoModal: React.FC = () => {
   };
 
   const handleApprove = () => {
-    approveAction('act-update-polaris-deadline');
+    if (polarisAction?.approvalStatus === 'approved' && polarisAction.status === 'completed') {
+      setApprovalDecision('approved');
+      setDemoStep(8);
+      return;
+    }
+    if (!approveAction('act-update-polaris-deadline')) return;
     setApprovalDecision('approved');
     setDemoStep(8);
   };
 
   const handleReject = () => {
+    rejectAction('act-update-polaris-deadline');
     setApprovalDecision('rejected');
     setDemoStep(8);
   };
@@ -469,21 +482,29 @@ export const DemoModal: React.FC = () => {
           {demoStep === 8 && (
             <div className="space-y-4">
               <div>
-                <h3 className="text-lg font-bold text-white tracking-tight">Step 8: Applying Workspace Changes</h3>
-                <p className="text-xs text-slate-400">TRACE executes the decision deterministically within the workspace state.</p>
+                <h3 className="text-lg font-bold text-white tracking-tight">Step 8: Workspace Change Decision</h3>
+                <p className="text-xs text-slate-400">TRACE applies an approved decision within the workspace; unapproved proposals do not change records.</p>
               </div>
 
-              <div className="p-5 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-4">
-                <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm">
-                  <CheckCircle2 className="w-4 h-4" />
+              <div className={`p-5 rounded-xl bg-slate-950 border space-y-4 ${
+                approvedAndApplied ? 'border-emerald-500/30' : 'border-amber-500/30'
+              }`}>
+                <div className={`flex items-center gap-2 font-semibold text-sm ${
+                  approvedAndApplied ? 'text-emerald-400' : 'text-amber-300'
+                }`}>
+                  {approvedAndApplied ? <CheckCircle2 className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
                   <span>
-                    {approvalDecision === 'rejected' 
-                      ? 'Decision Applied: Proposal Rejected (No records modified)' 
-                      : 'Changes Successfully Applied to Workspace'}
+                    {approvedAndApplied
+                      ? 'Changes Successfully Applied to Workspace'
+                      : approvalDecision === 'rejected'
+                        ? 'Proposal Rejected — No Changes Applied'
+                        : approvalDecision === 'approved'
+                          ? 'Action Was Approved but Changes Were Not Applied'
+                          : 'Action Not Approved — No Changes Applied'}
                   </span>
                 </div>
 
-                {approvalDecision !== 'rejected' ? (
+                {approvedAndApplied ? (
                   <div className="space-y-3 text-xs">
                     <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
                       <span className="text-slate-300">Memory Record: "Project Polaris Client Submission Deadline"</span>
@@ -511,7 +532,11 @@ export const DemoModal: React.FC = () => {
                   </div>
                 ) : (
                   <p className="text-xs text-slate-300">
-                    The proposal was rejected. As a result, the memory record retains its previous value and no unauthorized changes were applied.
+                    {approvalDecision === 'rejected'
+                      ? 'The proposal was rejected. The memory record retains its previous value and no changes were applied.'
+                      : approvalDecision === 'approved'
+                        ? 'The workspace does not confirm the proposed memory update, so TRACE cannot report that changes were applied.'
+                        : 'You continued without approving the proposal. The action remains unapplied and the workspace records were not changed.'}
                   </p>
                 )}
               </div>
@@ -523,7 +548,11 @@ export const DemoModal: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-bold text-white tracking-tight">Step 9: Verify & Record in Audit Trail</h3>
-                <p className="text-xs text-slate-400">TRACE logs the action, previous value, new value, actor, and execution timestamp.</p>
+                <p className="text-xs text-slate-400">
+                  {approvedAndApplied
+                    ? 'TRACE logs the action, previous value, new value, actor, and execution timestamp.'
+                    : 'TRACE records an approved change only after it has actually been applied.'}
+                </p>
               </div>
 
               <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
@@ -532,20 +561,28 @@ export const DemoModal: React.FC = () => {
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 text-xs space-y-2 font-mono">
-                  <div className="flex items-center justify-between text-slate-400 pb-2 border-b border-slate-800">
-                    <span>Event: action_approved</span>
-                    <span>Actor: Lead Director</span>
-                  </div>
-                  <div className="text-white font-semibold">
-                    Target: mem-polaris-deadline (Project Polaris Client Submission Deadline)
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                    <div className="text-rose-400">From: October 20, 2026, 5:00 PM</div>
-                    <div className="text-emerald-400">To: October 18, 2026, 11:59 PM</div>
-                  </div>
-                  <div className="text-slate-400 text-[11px] pt-1">
-                    Verification Result: Deterministic sync complete. No external calendar silently mutated.
-                  </div>
+                  {approvedAndApplied ? (
+                    <>
+                      <div className="flex items-center justify-between text-slate-400 pb-2 border-b border-slate-800">
+                        <span>Event: action_approved</span>
+                        <span>Actor: Lead Director</span>
+                      </div>
+                      <div className="text-white font-semibold">
+                        Target: mem-polaris-deadline (Project Polaris Client Submission Deadline)
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                        <div className="text-rose-400">From: {polarisAction?.proposedChange?.fromValue}</div>
+                        <div className="text-emerald-400">To: {polarisDeadlineMemory?.value}</div>
+                      </div>
+                      <div className="text-slate-400 text-[11px] pt-1">
+                        Verification Result: The workspace memory reflects the approved update. No external calendar silently mutated.
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-amber-200">
+                      No approved-change audit record exists because this proposal was not applied.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -574,7 +611,11 @@ export const DemoModal: React.FC = () => {
                   </div>
                   <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
                     <div className="font-semibold text-white">3. Upheld Human Agency</div>
-                    <p className="text-slate-400">Presented the change for review; never modified critical data without explicit confirmation.</p>
+                    <p className="text-slate-400">
+                      {approvedAndApplied
+                        ? 'Presented the change for review and applied it only after explicit approval.'
+                        : 'Presented the change for review. It was not applied because approval was not granted.'}
+                    </p>
                   </div>
                   <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
                     <div className="font-semibold text-white">4. Highlighted Remaining Review</div>
