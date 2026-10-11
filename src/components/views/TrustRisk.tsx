@@ -11,13 +11,15 @@ import {
   Check
 } from 'lucide-react';
 import { RiskSeverity, RiskStatus } from '../../types';
+import { workspaceChecksAsRisks } from '../../utils/workspaceChecks';
 
 export const TrustRisk: React.FC = () => {
-  const { risks, reviewRisk, mitigateRisk, setSelectedItem, sources } = useWorkspace();
+  const { risks, workspaceChecks, reviewRisk, mitigateRisk, setSelectedItem, sources, memories } = useWorkspace();
   const [severityFilter, setSeverityFilter] = useState<'all' | RiskSeverity>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | RiskStatus>('all');
 
-  const filteredRisks = risks.filter(r => {
+  const checkedRisks = workspaceChecksAsRisks(workspaceChecks);
+  const filteredRisks = [...risks, ...checkedRisks].filter(r => {
     if (severityFilter !== 'all' && r.severity !== severityFilter) return false;
     if (statusFilter !== 'all' && r.status !== statusFilter) return false;
     return true;
@@ -82,6 +84,7 @@ export const TrustRisk: React.FC = () => {
           </div>
         ) : (
           filteredRisks.map(risk => {
+            const check = workspaceChecks.find(item => `workspace-check-${item.id}` === risk.id);
             let sevColor = 'text-blue-400 border-blue-500/20 bg-blue-500/10';
             if (risk.severity === 'critical') sevColor = 'text-rose-400 border-rose-500/20 bg-rose-500/10';
             if (risk.severity === 'high') sevColor = 'text-amber-400 border-amber-500/20 bg-amber-500/10';
@@ -102,9 +105,9 @@ export const TrustRisk: React.FC = () => {
                       <span className="text-slate-600">·</span>
                       <span className="text-xs text-slate-300 font-semibold">{risk.category}</span>
                       <span className="text-slate-600">·</span>
-                      <span className="text-xs text-emerald-400 font-mono">
-                        Confidence: {Math.round(risk.confidence * 100)}%
-                      </span>
+                      {check
+                        ? <span className="text-xs text-slate-400 font-mono">Workspace check</span>
+                        : <span className="text-xs text-emerald-400 font-mono">Confidence: {Math.round(risk.confidence * 100)}%</span>}
                     </div>
                   </div>
 
@@ -122,6 +125,21 @@ export const TrustRisk: React.FC = () => {
                 <p className="text-xs text-slate-300 leading-relaxed">
                   {risk.explanation}
                 </p>
+
+                {check && (
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                    <div className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">
+                      Affected record: {check.recordTitle}
+                    </div>
+                    <div className="space-y-2">
+                      {check.evidence.map((evidence, index) => (
+                        <p key={`${check.id}-${index}`} className="text-xs text-slate-300 leading-relaxed break-words">
+                          {evidence}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Direct Conflicting Values display */}
                 {risk.conflictingValues && (
@@ -159,7 +177,20 @@ export const TrustRisk: React.FC = () => {
                   </button>
 
                   <div className="flex items-center gap-2">
-                    {risk.status === 'unreviewed' && (
+                    {check && (
+                      <button
+                        onClick={() => {
+                          const record = check.recordType === 'source'
+                            ? sources.find(source => source.id === check.recordId)
+                            : memories.find(memory => memory.id === check.recordId);
+                          if (record) setSelectedItem({ type: check.recordType, item: record });
+                        }}
+                        className="px-3 py-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
+                      >
+                        Open affected record
+                      </button>
+                    )}
+                    {!check && risk.status === 'unreviewed' && (
                       <button
                         onClick={() => reviewRisk(risk.id)}
                         className="px-3 py-1.5 text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"
@@ -168,7 +199,7 @@ export const TrustRisk: React.FC = () => {
                       </button>
                     )}
 
-                    {risk.status !== 'mitigated' && (
+                    {!check && risk.status !== 'mitigated' && (
                       <button
                         onClick={() => mitigateRisk(risk.id)}
                         className="px-3 py-1.5 text-xs font-semibold text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/30 rounded-lg transition-colors flex items-center gap-1"
@@ -178,7 +209,7 @@ export const TrustRisk: React.FC = () => {
                       </button>
                     )}
 
-                    {risk.status === 'mitigated' && (
+                    {!check && risk.status === 'mitigated' && (
                       <span className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Mitigated</span>

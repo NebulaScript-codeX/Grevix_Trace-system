@@ -6,6 +6,8 @@ import {
   TraviMessage,
   TrustRiskRecord
 } from '../types';
+import { getRecordCheckStatus } from './workspaceChecks';
+import type { WorkspaceCheck } from './workspaceChecks';
 
 export interface TraviWorkspaceData {
   sources: SourceRecord[];
@@ -13,6 +15,7 @@ export interface TraviWorkspaceData {
   findings: IntelligenceFinding[];
   actions: ActionRecord[];
   risks: TrustRiskRecord[];
+  workspaceChecks: WorkspaceCheck[];
 }
 
 export interface TraviResponse {
@@ -43,6 +46,9 @@ const terms = (value: string): string[] =>
       : term.endsWith('s') && term.length > 4
         ? term.slice(0, -1)
         : term);
+
+const safeStrings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 
 const containsAny = (value: string, patterns: RegExp[]): boolean =>
   patterns.some(pattern => pattern.test(value));
@@ -191,6 +197,106 @@ export const buildTraviResponse = (
   const asksForTaskList = containsAny(lowered, [/\bwhat tasks?\b/, /\blist\b/, /\bshow\b/, /\bwhich actions?\b/]);
   const asksToCreateTasks = containsAny(lowered, [/\bturn\b/, /\bconvert\b/, /\bmake\b/, /\bcreate\b/, /\bextract\b/]) && isTaskQuery;
 
+  const asksVerification = containsAny(lowered, [
+    /\bverif(y|ied|ication)\b/, /\baccurate\b/, /\bcorrect\b/, /\bwrong\b/,
+    /\bincomplete\b/, /\bmissing\b/, /\bsuspicious\b/, /\bspam\b/, /\bscam\b/,
+    /\btrust\b/, /\bcheck my data\b/, /\bconflict(s|ing)?\b/,
+    /\bwarning signs?\b/, /\bred flags?\b/, /\bflagged\b/, /\bwhy was .+ flagged\b/
+  ]);
+  if (asksVerification) {
+    const directMatches = relevantRecords(retrievalQuestion, data.workspaceChecks, check => {
+      const linkedRecords = [
+        ...data.sources.filter(source => check.sourceIds.includes(source.id)).flatMap(source => [
+          source.title, source.summary, source.content,
+          ...safeStrings(source.entities?.projects), ...safeStrings(source.entities?.people)
+        ]),
+        ...data.memories.filter(memory => check.recordType === 'memory' && memory.id === check.recordId)
+          .flatMap(memory => [memory.value, ...safeStrings(memory.relatedEntities)])
+      ];
+      return `${check.kind} ${check.recordTitle} ${check.explanation} ${check.evidence.join(' ')} ${check.nextStep} ${linkedRecords.join(' ')}`;
+    }).slice(0, 5);
+    const normalizedRetrieval = normalize(retrievalQuestion);
+    const matchedSources = data.sources.filter(source =>
+      normalizedRetrieval.includes(normalize(source.title))
+      || recordMatches(
+        retrievalQuestion,
+        source.title,
+        `${source.summary} ${source.content} ${safeStrings(source.extractedDetails).join(' ')}`
+      ));
+    const sourceIdsWithMatches = new Set(matchedSources.map(source => source.id));
+    const sourceChecks = data.workspaceChecks.filter(check =>
+      check.kind === 'suspicious'
+      && check.recordType === 'source'
+      && sourceIdsWithMatches.has(check.recordId));
+    const relevantDirectMatches = matchedSources.length > 0
+      ? directMatches.filter(check =>
+        check.sourceIds.some(sourceId => sourceIdsWithMatches.has(sourceId))
+        || check.recordType === 'source' && sourceIdsWithMatches.has(check.recordId))
+      : directMatches;
+    const matches = [...new Map([...relevantDirectMatches, ...sourceChecks].map(check => [check.id, check])).values()]
+      .slice(0, 5);
+    const askedProject = retrievalQuestion.match(/\bproject\s+([a-z0-9][a-z0-9-]*)/i)?.[1];
+    const knownProject = askedProject && [
+      ...data.sources.flatMap(source => safeStrings(source.entities?.projects)),
+      ...data.memories.flatMap(memory => safeStrings(memory.relatedEntities).filter(entity => /^project\b/i.test(entity)))
+    ].some(project => normalize(project) === normalize(`Project ${askedProject}`));
+    if (askedProject && !knownProject) {
+      return response(`I couldn't find Project ${askedProject} in this workspace, so I can't check its records.`);
+    }
+    const verificationOnlyTerms = new Set([
+      'verifi', 'verified', 'verification', 'accurate', 'correct', 'wrong', 'incomplet',
+      'missing', 'suspicious', 'spam', 'scam', 'trust', 'check', 'data', 'conflict',
+      'conflicting', 'everything', 'all', 'information'
+    ]);
+    const hasSpecificSubject = terms(retrievalQuestion).some(term => !verificationOnlyTerms.has(term));
+    const selectedChecks = matches.length > 0
+      ? matches
+      : !askedProject && !hasSpecificSubject
+        ? data.workspaceChecks.slice(0, 4)
+        : [];
+    if (selectedChecks.length > 0) {
+      const checkLines = selectedChecks.map(check =>
+        `• ${check.title} — affected record: “${check.recordTitle}”. ${check.explanation}\n  Evidence: ${check.evidence.join(' ')}\n  Next step: ${check.nextStep}`
+      );
+      const cited = [...new Map(selectedChecks.flatMap(check => [
+        ...data.sources.filter(source => check.sourceIds.includes(source.id))
+          .map(source => ({ id: source.id, title: source.title, type: source.type })),
+        ...(check.recordType === 'memory'
+          ? data.memories.filter(memory => memory.id === check.recordId)
+            .map(memory => ({ id: memory.id, title: memory.title, type: 'memory' }))
+          : data.sources.filter(source => source.id === check.recordId)
+            .map(source => ({ id: source.id, title: source.title, type: source.type })))
+      ]).map(citation => [citation.id, citation])).values()];
+      return response(
+        `${matches.length === 0 ? 'I do not know which record you mean, so here are some checks currently found:' : 'Here are the matching checks from this workspace:'}\n${checkLines.join('\n')}\n\nThese are local checks only. They can flag missing fields, differences, and a few suspicious patterns, but they cannot confirm that a source is true or that content is malicious.`,
+        cited
+      );
+    }
+
+    const matchingMemories = relevantRecords(retrievalQuestion, data.memories, memory =>
+      `${memory.value} ${memory.category} ${memory.relatedEntities.join(' ')}`);
+    const matchingSources = relevantRecords(retrievalQuestion, data.sources, source =>
+      `${source.summary} ${source.content} ${safeStrings(source.extractedDetails).join(' ')} ${safeStrings(source.entities?.projects).join(' ')}`);
+    if (matchingMemories.length || matchingSources.length) {
+      const memoryLines = matchingMemories.slice(0, 3).map(memory => {
+        const status = getRecordCheckStatus('memory', memory.id, data.workspaceChecks, data.sources, memory);
+        return `• ${memory.title}: ${status.label}. ${status.explanation}`;
+      });
+      const sourceLines = matchingSources.slice(0, 3).map(source => {
+        const status = getRecordCheckStatus('source', source.id, data.workspaceChecks, data.sources);
+        return `• ${source.title}: ${status.label}. ${status.explanation}`;
+      });
+      return response(
+        `I found the related records, but no specific issue was flagged by the available local checks:\n${[...memoryLines, ...sourceLines].join('\n')}\n\nNo warning is not proof that the information is correct.`,
+        [
+          ...matchingMemories.slice(0, 3).map(memory => ({ id: memory.id, title: memory.title, type: 'memory' })),
+          ...matchingSources.slice(0, 3).map(source => ({ id: source.id, title: source.title, type: source.type }))
+        ]
+      );
+    }
+    return response('I could not find a matching record to check. Tell me the source, saved detail, or project name. TRACE only checks information stored in this workspace.');
+  }
+
   const projectNames = projectScope(retrievalQuestion, data.memories, data.sources, previousUsers);
   const explicitProject = question.match(/\bproject\s+([a-z0-9][a-z0-9-]*)/i)?.[1];
   const knownProjectMention = explicitProject && [...data.memories.flatMap(memory => memory.relatedEntities),
@@ -336,7 +442,8 @@ export const buildTraviResponse = (
     if (conflict) {
       answer = `The saved records disagree${projectNames.length ? ` about ${projectNames.join(', ')}` : ''}:\n${deadlineClaims.join('\n') || conflictFinding?.explanation || ''}`;
       if (memory) {
-        answer += `\n\nThe saved project detail still says “${memory.value}” and is marked ${memory.verificationStatus === 'unverified' ? 'not confirmed' : memory.verificationStatus}.`;
+        const status = getRecordCheckStatus('memory', memory.id, data.workspaceChecks, data.sources, memory);
+        answer += `\n\nThe saved project detail still says “${memory.value}” and its current check status is ${status.label}. ${status.explanation}`;
       }
       if (updateSource) {
         answer += ` The newer source says it replaces the earlier date. It gives ${updateSource.entities.deadlines?.join('; ') || 'an updated deadline'}. This is the latest date in the sources, but the saved project detail has not been updated yet.`;
@@ -359,7 +466,8 @@ export const buildTraviResponse = (
         citations.push({ id: conflictFinding.id, title: conflictFinding.title, type: 'risk' });
       }
     } else if (memory) {
-      answer = `The saved project detail for ${memory.title} is “${memory.value}” (${memory.verificationStatus === 'unverified' ? 'not confirmed' : memory.verificationStatus}).`;
+      const status = getRecordCheckStatus('memory', memory.id, data.workspaceChecks, data.sources, memory);
+      answer = `The saved project detail for ${memory.title} is “${memory.value}” (${status.label}). ${status.explanation}`;
       if (sourcesByDate[0]) answer += ` The latest matching source is “${sourcesByDate[0].title}” dated ${sourcesByDate[0].date}.`;
     } else if (deadlineClaims.length) {
       answer = `The matching source${deadlineClaims.length === 1 ? ' says' : 's say'}:\n${deadlineClaims.join('\n')}`;
@@ -430,7 +538,7 @@ export const buildTraviResponse = (
     })),
     ...matchedMemories.slice(0, 2).map(memory => ({
       id: memory.id, title: memory.title, type: 'memory',
-      line: `• Saved detail: ${memory.title} — ${memory.value} (${memory.verificationStatus === 'unverified' ? 'not confirmed' : memory.verificationStatus}).`
+      line: `• Saved detail: ${memory.title} — ${memory.value} (${getRecordCheckStatus('memory', memory.id, data.workspaceChecks, data.sources, memory).label}).`
     })),
     ...matchedFindings.slice(0, 2).map(finding => ({
       id: finding.id, title: finding.title, type: 'risk',

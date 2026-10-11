@@ -2,14 +2,18 @@ import React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { X, ExternalLink, Calendar, CheckCircle2, ShieldAlert, FileText, ArrowRight, CornerDownRight } from 'lucide-react';
+import { getRecordCheckStatus } from '../utils/workspaceChecks';
 
 export const DetailModal: React.FC = () => {
-  const { selectedItem, setSelectedItem, sources, memories, findings, approveAction, resolveFinding, reviewRisk, setActiveTab } = useWorkspace();
+  const { selectedItem, setSelectedItem, sources, memories, findings, workspaceChecks, approveAction, resolveFinding, reviewRisk, setActiveTab } = useWorkspace();
   const reduceMotion = useReducedMotion();
 
   if (!selectedItem) return null;
 
   const { type, item } = selectedItem;
+  const sourceChecks = type === 'source'
+    ? workspaceChecks.filter(check => check.recordType === 'source' && check.recordId === item.id)
+    : [];
 
   const closeModal = () => setSelectedItem(null);
 
@@ -76,6 +80,34 @@ export const DetailModal: React.FC = () => {
           {/* Type specific views */}
           {type === 'source' && (
             <div className="space-y-4">
+              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs">
+                <div className="font-semibold text-slate-300 mb-1">
+                  Check status: {getRecordCheckStatus('source', item.id, workspaceChecks, sources).label}
+                </div>
+                <p className="text-slate-400 leading-relaxed">
+                  {getRecordCheckStatus('source', item.id, workspaceChecks, sources).explanation}
+                </p>
+              </div>
+              {sourceChecks.map(check => (
+                <div key={check.id} className={`p-4 rounded-xl border ${
+                  check.kind === 'suspicious'
+                    ? 'bg-rose-950/20 border-rose-500/25'
+                    : 'bg-slate-950/60 border-slate-800/80'
+                }`}>
+                  <div className="text-xs font-semibold text-rose-300 mb-2">{check.title}</div>
+                  <p className="text-xs text-slate-300 leading-relaxed">{check.explanation}</p>
+                  <ul className="mt-2 space-y-1">
+                    {check.evidence.map((evidence, index) => (
+                      <li key={`${check.id}-${index}`} className="text-xs text-slate-300 leading-relaxed break-words">
+                        • {evidence}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-xs text-slate-400 leading-relaxed">
+                    <strong className="text-slate-300">Next step: </strong>{check.nextStep}
+                  </p>
+                </div>
+              ))}
               <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
                 <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Raw Content / Message</div>
                 <pre className="text-xs text-slate-200 whitespace-pre-wrap font-sans leading-relaxed">
@@ -145,7 +177,9 @@ export const DetailModal: React.FC = () => {
 
               <div className="flex items-center gap-4 text-xs text-slate-400 pt-2 border-t border-slate-800">
                 <div>Severity: <span className="font-semibold text-rose-400 capitalize">{item.severity}</span></div>
-                <div>Confidence: <span className="font-mono text-emerald-400">{Math.round(item.confidence * 100)}%</span></div>
+                {!String(item.id).startsWith('workspace-check-') && (
+                  <div>Confidence: <span className="font-mono text-emerald-400">{Math.round(item.confidence * 100)}%</span></div>
+                )}
                 <div>Status: <span className="font-mono text-slate-200 capitalize">{item.status}</span></div>
               </div>
             </div>
@@ -165,9 +199,12 @@ export const DetailModal: React.FC = () => {
 
               <div className="flex items-center gap-4 text-xs text-slate-400 pt-2 border-t border-slate-800">
                 <div>Category: <span className="text-slate-200 capitalize">{item.category}</span></div>
-                <div>Verification: <span className={`capitalize font-semibold ${item.verificationStatus === 'verified' ? 'text-emerald-400' : 'text-amber-400'}`}>{item.verificationStatus}</span></div>
+                <div>Check status: <span className="text-amber-300 font-semibold">{getRecordCheckStatus('memory', item.id, workspaceChecks, sources, item).label}</span></div>
                 <div>Updated: <span className="font-mono text-slate-400">{item.updatedAt}</span></div>
               </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                {getRecordCheckStatus('memory', item.id, workspaceChecks, sources, item).explanation}
+              </p>
             </div>
           )}
 
@@ -196,7 +233,7 @@ export const DetailModal: React.FC = () => {
 
               {item.executionResult && (
                 <div className="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-xs">
-                  <div className="font-semibold text-emerald-400 mb-1">Execution Status: Verified</div>
+                  <div className="font-semibold text-emerald-400 mb-1">Action completed in this workspace</div>
                   <p className="text-slate-300">{item.executionResult.message}</p>
                   <div className="text-slate-500 mt-1 font-mono text-[11px]">{item.executionResult.executedAt}</div>
                 </div>

@@ -15,9 +15,10 @@ import {
   Tag
 } from 'lucide-react';
 import { SourceRecord, SourceType } from '../../types';
+import { getRecordCheckStatus } from '../../utils/workspaceChecks';
 
 export const SourceLibrary: React.FC = () => {
-  const { sources, addSource, deleteSource, setSelectedItem } = useWorkspace();
+  const { sources, workspaceChecks, addSource, deleteSource, setSelectedItem } = useWorkspace();
   const [typeFilter, setTypeFilter] = useState<'all' | SourceType>('all');
   const [search, setSearch] = useState('');
   const [isAddOpen, setAddOpen] = useState(false);
@@ -52,6 +53,10 @@ export const SourceLibrary: React.FC = () => {
       .split('\n')
       .map(d => d.trim())
       .filter(d => d.length > 0);
+    const sourceText = `${newTitle}\n${newContent}`.toLowerCase();
+    const mentionedProjects = [...new Set(sources.flatMap(source =>
+      Array.isArray(source.entities?.projects) ? source.entities.projects : []))]
+      .filter(project => sourceText.includes(project.toLowerCase()));
 
     addSource({
       title: newTitle.trim(),
@@ -60,10 +65,10 @@ export const SourceLibrary: React.FC = () => {
       content: newContent.trim(),
       sourceLabel: `Manual Ingestion · ${newAuthor || 'User'}`,
       date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      author: newAuthor || 'Current User',
+      author: newAuthor.trim() || undefined,
       entities: {
         people: newAuthor ? [newAuthor] : [],
-        projects: ['Project Polaris']
+        projects: mentionedProjects
       },
       extractedDetails: extracted.length > 0 ? extracted : ['User submitted context note'],
       isDemo: false
@@ -194,6 +199,19 @@ export const SourceLibrary: React.FC = () => {
               <div className="flex items-center justify-between text-[11px] text-slate-400">
                 <span className="truncate max-w-[160px]">{source.sourceLabel}</span>
                 <span className="font-mono text-slate-500">{source.date.split(' ')[0]}</span>
+              </div>
+              <div
+                title={getRecordCheckStatus('source', source.id, workspaceChecks, sources).explanation}
+                className={`text-[10px] font-mono uppercase font-semibold ${
+                  getRecordCheckStatus('source', source.id, workspaceChecks, sources).kind === 'suspicious'
+                    ? 'text-rose-400'
+                    : getRecordCheckStatus('source', source.id, workspaceChecks, sources).kind === 'incomplete'
+                      || getRecordCheckStatus('source', source.id, workspaceChecks, sources).kind === 'invalid'
+                      ? 'text-amber-400'
+                      : 'text-slate-400'
+                }`}
+              >
+                Check status: {getRecordCheckStatus('source', source.id, workspaceChecks, sources).label}
               </div>
 
               <div className="flex items-center justify-between pt-1">

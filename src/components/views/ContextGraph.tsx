@@ -10,6 +10,7 @@ import {
   useEdgesState
 } from '@xyflow/react';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { getRecordCheckStatus } from '../../utils/workspaceChecks';
 import { 
   Network, 
   Search, 
@@ -29,7 +30,7 @@ import {
 } from 'lucide-react';
 
 export const ContextGraph: React.FC = () => {
-  const { sources, memories, findings, actions, setSelectedItem } = useWorkspace();
+  const { sources, memories, findings, actions, workspaceChecks, setSelectedItem } = useWorkspace();
   const [selectedGraphNode, setSelectedGraphNode] = useState<{ id: string; label: string; type: string; details: any } | null>(null);
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
@@ -200,20 +201,26 @@ export const ContextGraph: React.FC = () => {
     // Deadlines & Memories Nodes
     const polarisDeadline = memories.find(m => m.id === 'mem-polaris-deadline');
     if (polarisDeadline) {
-      const isVerified = polarisDeadline.verificationStatus === 'verified';
+      const checkStatus = getRecordCheckStatus('memory', polarisDeadline.id, workspaceChecks, sources, polarisDeadline);
+      const needsReview = ['conflict', 'suspicious', 'invalid', 'incomplete'].includes(checkStatus.kind);
+      const deadlineEdgeLabel = checkStatus.kind === 'conflict'
+        ? 'CONFLICTING DEADLINE'
+        : checkStatus.kind === 'incomplete'
+          ? 'INCOMPLETE DEADLINE'
+          : 'UNVERIFIED DEADLINE';
       rawNodes.push({
         id: 'mem-polaris-deadline-node',
         position: { x: 420, y: -70 },
         data: {
           label: `Deadline: ${polarisDeadline.value}`,
           type: 'DEADLINE',
-          subtitle: `Status: ${polarisDeadline.verificationStatus}`,
+          subtitle: `Status: ${checkStatus.label}`,
           meta: polarisDeadline
         },
         style: {
-          background: isVerified ? '#064e3b' : '#451a03',
+          background: needsReview ? '#451a03' : '#1e293b',
           color: '#ffffff',
-          border: isVerified ? '2px solid #10b981' : '2px solid #f59e0b',
+          border: needsReview ? '2px solid #f59e0b' : '2px solid #64748b',
           borderRadius: '12px',
           padding: '10px 14px',
           fontSize: '11px',
@@ -226,14 +233,14 @@ export const ContextGraph: React.FC = () => {
         id: 'edge-deadline-polaris',
         source: 'mem-polaris-deadline-node',
         target: 'proj-polaris',
-        label: isVerified ? 'VERIFIED DEADLINE' : 'CONTESTED DEADLINE',
-        style: { stroke: isVerified ? '#10b981' : '#f59e0b', strokeDasharray: isVerified ? undefined : '5,5' },
-        labelStyle: { fill: isVerified ? '#10b981' : '#f59e0b', fontSize: 9, fontWeight: 700 }
+        label: deadlineEdgeLabel,
+        style: { stroke: needsReview ? '#f59e0b' : '#64748b', strokeDasharray: needsReview ? '5,5' : undefined },
+        labelStyle: { fill: needsReview ? '#f59e0b' : '#94a3b8', fontSize: 9, fontWeight: 700 }
       });
     }
 
     return { initialNodes: rawNodes, initialEdges: rawEdges };
-  }, [sources, memories]);
+  }, [sources, memories, workspaceChecks]);
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);

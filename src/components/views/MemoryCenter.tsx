@@ -7,16 +7,18 @@ import {
   Edit3, 
   Trash2, 
   ExternalLink, 
-  CheckCircle2, 
-  AlertCircle,
   HelpCircle,
+  AlertCircle,
   X
 } from 'lucide-react';
 import { MemoryCategory, MemoryRecord } from '../../types';
+import { getRecordCheckStatus } from '../../utils/workspaceChecks';
 
 export const MemoryCenter: React.FC = () => {
   const { 
     memories, 
+    sources,
+    workspaceChecks,
     addMemory, 
     updateMemory, 
     deleteMemory, 
@@ -67,7 +69,7 @@ export const MemoryCenter: React.FC = () => {
       category: newCategory,
       value: newValue.trim(),
       sourceRef: newSourceRef.trim() || 'Manual user entry in Memory Center',
-      verificationStatus: 'verified',
+      verificationStatus: 'unverified',
       relatedEntities: []
     });
 
@@ -166,11 +168,20 @@ export const MemoryCenter: React.FC = () => {
                 <span className="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">
                   {mem.category === 'commitments' ? 'Commitments & tasks' : mem.category}
                 </span>
-                <span className={`text-[10px] font-mono uppercase font-semibold flex items-center gap-1 ${
-                  mem.verificationStatus === 'verified' ? 'text-emerald-400' : 'text-amber-400'
-                }`}>
-                  {mem.verificationStatus === 'verified' ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                  <span>{mem.verificationStatus === 'verified' ? 'Confirmed' : mem.verificationStatus === 'unverified' ? 'Needs checking' : 'Inferred'}</span>
+                <span
+                  title={getRecordCheckStatus('memory', mem.id, workspaceChecks, sources, mem).explanation}
+                  className={`text-[10px] font-mono uppercase font-semibold flex items-center gap-1 ${
+                    getRecordCheckStatus('memory', mem.id, workspaceChecks, sources, mem).kind === 'evidence'
+                      ? 'text-blue-400'
+                      : getRecordCheckStatus('memory', mem.id, workspaceChecks, sources, mem).kind === 'conflict'
+                        ? 'text-rose-400'
+                        : 'text-amber-400'
+                  }`}
+                >
+                  {getRecordCheckStatus('memory', mem.id, workspaceChecks, sources, mem).kind === 'evidence'
+                    ? <HelpCircle className="w-3 h-3" />
+                    : <AlertCircle className="w-3 h-3" />}
+                  <span>{getRecordCheckStatus('memory', mem.id, workspaceChecks, sources, mem).label}</span>
                 </span>
               </div>
 
@@ -331,17 +342,8 @@ export const MemoryCenter: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-400 font-medium mb-1">Verification Status</label>
-                <select
-                  value={editingMemory.verificationStatus}
-                  onChange={e => setEditingMemory({ ...editingMemory, verificationStatus: e.target.value as any })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-blue-500 capitalize"
-                >
-                  <option value="verified">Confirmed</option>
-                  <option value="unverified">Needs checking</option>
-                  <option value="inferred">Inferred</option>
-                </select>
+              <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-slate-400">
+                TRACE sets the check status from available records. Editing this detail does not verify that it is correct.
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">

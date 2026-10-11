@@ -1,5 +1,6 @@
 import React from 'react';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { getRecordCheckStatus } from '../../utils/workspaceChecks';
 import { TraceLogo } from '../brand/TraceLogo';
 import { TraviRobotLogo } from '../brand/TraviRobotLogo';
 import { 
@@ -19,6 +20,7 @@ import {
 export const CommandCenter: React.FC = () => {
   const { 
     metrics, 
+    workspaceChecks,
     findings, 
     actions, 
     memories, 
@@ -34,6 +36,7 @@ export const CommandCenter: React.FC = () => {
   const criticalFindings = findings.filter(f => f.status === 'open' && f.severity === 'critical');
   const pendingActions = actions.filter(a => a.status === 'pending_approval' || a.status === 'suggested');
   const deadlineMemories = memories.filter(m => m.category === 'deadlines' || m.category === 'commitments');
+  const checksNeedingAttention = workspaceChecks.filter(check => check.kind !== 'unverified');
 
   return (
     <div className="space-y-6">
@@ -51,13 +54,13 @@ export const CommandCenter: React.FC = () => {
               Good morning, Lead Director.
             </h1>
             <p className="text-xs text-slate-300 leading-relaxed">
-              {metrics.criticalFindings > 0 ? (
+              {metrics.criticalFindings > 0 || checksNeedingAttention.length > 0 ? (
                 <span>
-                  TRACE found <strong className="text-rose-400 font-semibold">{metrics.criticalFindings} urgent schedule conflict</strong> that needs your review. A newer Project Polaris update moved the submission deadline earlier than the scheduled preparation meeting.
+                  TRACE found <strong className="text-rose-400 font-semibold">{Math.max(metrics.criticalFindings, checksNeedingAttention.length)} item(s)</strong> that may need your review. Open each item to see the records and evidence behind it.
                 </span>
               ) : (
                 <span>
-                  All urgent conflicts have been reviewed or resolved. Saved project information matches the updates currently confirmed in the workspace.
+                  Current checks found no open issues. This does not confirm that every saved detail is correct.
                 </span>
               )}
             </p>
@@ -141,7 +144,7 @@ export const CommandCenter: React.FC = () => {
           className="p-4 rounded-xl bg-[#0d1322] border border-slate-800/80 hover:border-slate-700 text-left transition-all group"
         >
           <div className="flex items-center justify-between text-slate-400 text-xs mb-2">
-            <span>Verified</span>
+            <span>Applied</span>
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
           </div>
           <div className="text-2xl font-bold text-emerald-400 font-mono tabular-nums">{metrics.verifiedActions}</div>
@@ -321,9 +324,11 @@ export const CommandCenter: React.FC = () => {
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-white truncate">{mem.title}</span>
                     <span className={`text-[10px] uppercase font-mono font-semibold ${
-                      mem.verificationStatus === 'verified' ? 'text-emerald-400' : 'text-amber-400'
+                      getRecordCheckStatus('memory', mem.id, workspaceChecks, sources, mem).kind === 'conflict'
+                        ? 'text-rose-400'
+                        : 'text-amber-400'
                     }`}>
-                      {mem.verificationStatus}
+                      {getRecordCheckStatus('memory', mem.id, workspaceChecks, sources, mem).label}
                     </span>
                   </div>
                   <div className="text-xs font-mono text-slate-300 font-semibold">{mem.value}</div>

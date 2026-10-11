@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
+import { getRecordCheckStatus } from '../utils/workspaceChecks';
 import { 
   X, 
   ChevronRight, 
@@ -24,8 +25,9 @@ export const DemoModal: React.FC = () => {
     setDemoModalOpen, 
     demoStep, 
     setDemoStep, 
-    sources, 
-    memories, 
+    sources,
+    memories,
+    workspaceChecks,
     findings, 
     actions, 
     approveAction, 
@@ -490,7 +492,11 @@ export const DemoModal: React.FC = () => {
 
                     <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">
                       <span className="text-slate-300">Verification Status</span>
-                      <span className="font-mono text-emerald-400 uppercase font-semibold">{polarisDeadlineMemory?.verificationStatus}</span>
+                      <span className="font-mono text-amber-400 uppercase font-semibold">
+                        {polarisDeadlineMemory
+                          ? getRecordCheckStatus('memory', polarisDeadlineMemory.id, workspaceChecks, sources, polarisDeadlineMemory).label
+                          : 'Unavailable'}
+                      </span>
                     </div>
 
                     <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between">

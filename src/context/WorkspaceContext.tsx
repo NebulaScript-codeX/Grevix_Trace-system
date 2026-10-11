@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   SourceRecord,
   MemoryRecord,
@@ -22,6 +22,7 @@ import {
   initialSettings
 } from '../data/initialWorkspace';
 import { buildTraviResponse } from '../utils/traviResponses';
+import { analyzeWorkspace, WorkspaceCheck } from '../utils/workspaceChecks';
 
 export interface ToastMessage {
   id: string;
@@ -36,6 +37,7 @@ interface WorkspaceContextType {
   findings: IntelligenceFinding[];
   actions: ActionRecord[];
   risks: TrustRiskRecord[];
+  workspaceChecks: WorkspaceCheck[];
   timeline: TimelineEvent[];
   integrations: IntegrationService[];
   settings: WorkspaceSettings;
@@ -182,6 +184,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [traviMessages, setTraviMessages] = useState<TraviMessage[]>(() =>
     readStoredArray(`${STORAGE_KEY}_travi_messages`, [initialTraviMessage])
   );
+  const workspaceChecks = useMemo(() => analyzeWorkspace(sources, memories), [sources, memories]);
 
   const resetTraviChat = () => {
     setTraviMessages([
@@ -210,7 +213,8 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       memories,
       findings,
       actions,
-      risks
+      risks,
+      workspaceChecks
     });
     const traviReply: TraviMessage = {
       id: `trv-${Date.now()}`,
@@ -278,9 +282,10 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             return {
               ...mem,
               [field]: toValue,
-              verificationStatus: 'verified',
+              verificationStatus: 'unverified',
               updatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-              sourceRef: 'Updated & verified from Source C (Sarah Lin Email, Oct 11)'
+              sourceRef: 'Updated from an approved TRACE action; source confirmation is still needed.',
+              sourceId: undefined
             };
           }
           return mem;
@@ -299,9 +304,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             approvalStatus: 'approved',
             executionResult: {
               executedAt: executionTimestamp,
-              message: targetAction.proposedChange 
-                ? `Successfully synchronized workspace deadline to ${targetAction.proposedChange.toValue}` 
-                : 'Action approved and executed deterministically in workspace.',
+              message: targetAction.proposedChange
+                ? `Applied the proposed value ${targetAction.proposedChange.toValue} in this workspace. Source accuracy was not externally verified.`
+                : 'Action approved and applied deterministically in this workspace.',
               isSimulation: true,
               verified: true
             }
@@ -350,13 +355,13 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       recordType: 'action',
       previousState: targetAction.proposedChange?.fromValue,
       newState: targetAction.proposedChange?.toValue,
-      result: 'Verified in workspace memory. Finding resolved.',
+      result: 'Action applied in the workspace. Source accuracy remains unverified.',
       actor: settings.userName
     });
 
     addToast(
       'success',
-      'Action Approved & Verified',
+      'Action Approved & Applied',
       updatedValueSummary 
         ? `Applied update: ${updatedValueSummary}` 
         : `Approved "${targetAction.title}"`
@@ -508,7 +513,12 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
     setMemories(prev =>
-      prev.map(m => (m.id === id ? { ...m, ...updates, updatedAt: timestamp } : m))
+      prev.map(m => (m.id === id ? {
+        ...m,
+        ...updates,
+        verificationStatus: 'unverified',
+        updatedAt: timestamp
+      } : m))
     );
 
     logTimelineEvent({
@@ -655,6 +665,7 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         findings,
         actions,
         risks,
+        workspaceChecks,
         timeline,
         integrations,
         settings,
