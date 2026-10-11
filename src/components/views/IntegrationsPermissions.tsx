@@ -74,11 +74,11 @@ export const IntegrationsPermissions: React.FC = () => {
       <div>
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400 mb-1">
           <Layers className="w-4 h-4" />
-          <span>Security & Connected Gateways</span>
+          <span>Connected Services & Access</span>
         </div>
         <h1 className="text-2xl font-bold text-white tracking-tight">Integrations & Permissions</h1>
         <p className="text-xs text-slate-400 mt-0.5">
-          Audited connector credentials, data isolation boundaries, and least-privilege permission grants.
+          See example service connections and the access they would need. No external services are connected in this demo.
         </p>
       </div>
 
@@ -86,8 +86,8 @@ export const IntegrationsPermissions: React.FC = () => {
       <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 flex items-start gap-3 text-xs text-slate-300 leading-relaxed">
         <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
         <div>
-          <strong className="text-white">Strict Transparency Policy: </strong>
-          TRACE never fabricates active OAuth connections to external services like Gmail or Google Calendar without real user tokens. In demo mode, simulated enterprise records are unambiguously marked as <strong>DEMO SOURCE</strong> to protect trust and epistemic integrity.
+          <strong className="text-white">Demo information only: </strong>
+          TRACE does not connect to Gmail, Google Calendar, or other external services. The services and permissions shown here are examples, not active connections.
         </div>
       </div>
 
@@ -119,7 +119,7 @@ export const IntegrationsPermissions: React.FC = () => {
             {/* Permissions list */}
             <div>
               <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Granted Permissions:
+                Example Permissions (not active):
               </div>
               <ul className="space-y-1">
                 {integ.permissions.map((p, i) => (
@@ -134,7 +134,7 @@ export const IntegrationsPermissions: React.FC = () => {
             {/* Capabilities */}
             <div>
               <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
-                Supported Capabilities:
+                Example Features:
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {integ.capabilities.map((c, i) => (
@@ -156,7 +156,7 @@ export const IntegrationsPermissions: React.FC = () => {
                 className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg text-xs font-medium border border-slate-800 transition-colors flex items-center gap-1.5"
               >
                 <RefreshCw className="w-3 h-3" />
-                <span>Check Status</span>
+                <span>View Demo Status</span>
               </button>
             </div>
           </div>

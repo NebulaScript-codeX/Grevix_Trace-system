@@ -39,11 +39,11 @@ export const ActionBoard: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400 mb-1">
             <CheckSquare className="w-4 h-4" />
-            <span>Human-Governed Execution Board</span>
+            <span>Review Suggested Actions</span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Action Board</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Review, authorize, and verify context-aware recommendations before any state changes are committed.
+            Check each suggested change before applying it. TRACE will not apply an action until you approve it.
           </p>
         </div>
       </div>
@@ -51,7 +51,7 @@ export const ActionBoard: React.FC = () => {
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#0d1322] rounded-xl border border-slate-800">
         <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
-          <span className="text-[11px] font-medium text-slate-400 px-2">State:</span>
+          <span className="text-[11px] font-medium text-slate-400 px-2">Status:</span>
           {(['all', 'pending', 'completed', 'rejected'] as const).map(tab => (
             <button
               key={tab}
@@ -119,11 +119,11 @@ export const ActionBoard: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 text-[11px]">Approval:</span>
+                    <span className="text-xs text-slate-400 text-[11px]">Review status:</span>
                     <span className={`text-xs font-mono font-bold uppercase ${
                       isCompleted ? 'text-emerald-400' : isRejected ? 'text-rose-400' : 'text-amber-400'
                     }`}>
-                      {action.approvalStatus}
+                      {action.approvalStatus === 'unreviewed' ? 'Needs review' : action.approvalStatus}
                     </span>
                   </div>
                 </div>
@@ -136,7 +136,7 @@ export const ActionBoard: React.FC = () => {
                 {action.proposedChange && (
                   <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80 text-xs space-y-2">
                     <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                      Proposed Workspace Context Modification:
+                      Suggested change:
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 font-mono text-xs">
                       <span className="text-rose-400/90 line-through bg-slate-900 px-2.5 py-1 rounded border border-slate-800">
@@ -155,11 +155,11 @@ export const ActionBoard: React.FC = () => {
                   <div className="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-xs space-y-1 text-emerald-200">
                     <div className="font-semibold flex items-center gap-1.5 text-emerald-400">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Deterministic Internal Execution Verified</span>
+                      <span>Change saved in this workspace</span>
                     </div>
                     <p className="text-[11px] text-slate-300">{action.executionResult.message}</p>
                     <div className="text-[10px] font-mono text-slate-500">
-                      Verified at: {action.executionResult.executedAt}
+                      Saved at: {action.executionResult.executedAt}
                     </div>
                   </div>
                 )}
@@ -171,7 +171,7 @@ export const ActionBoard: React.FC = () => {
                     className="text-slate-400 hover:text-white flex items-center gap-1"
                   >
                     <ExternalLink className="w-3 h-3" />
-                    <span>View Record Linkages</span>
+                    <span>View Related Records</span>
                   </button>
 
                   <div className="flex items-center gap-2">

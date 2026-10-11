@@ -29,18 +29,18 @@ export const TrustRisk: React.FC = () => {
       <div>
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-400 mb-1">
           <ShieldAlert className="w-4 h-4" />
-          <span>Epistemic Integrity & Governance</span>
+          <span>Conflicts & Unconfirmed Details</span>
         </div>
         <h1 className="text-2xl font-bold text-white tracking-tight">Trust & Risk Center</h1>
         <p className="text-xs text-slate-400 mt-0.5">
-          Audits conflicting statements, temporal inversions, unverified assumptions, and ungrounded claims across all sources.
+          Review information that may conflict, be out of date, or need confirmation. Open an item to see its supporting records and suggested next step.
         </p>
       </div>
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#0d1322] rounded-xl border border-slate-800">
         <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
-          <span className="text-[11px] font-medium text-slate-400 px-2">Severity:</span>
+          <span className="text-[11px] font-medium text-slate-400 px-2">Importance:</span>
           {(['all', 'critical', 'high', 'medium', 'low'] as const).map(sev => (
             <button
               key={sev}
@@ -68,7 +68,7 @@ export const TrustRisk: React.FC = () => {
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {st}
+              {st === 'all' ? 'All' : st === 'unreviewed' ? 'Needs review' : st === 'mitigated' ? 'Addressed' : 'Reviewed'}
             </button>
           ))}
         </div>
@@ -103,18 +103,18 @@ export const TrustRisk: React.FC = () => {
                       <span className="text-xs text-slate-300 font-semibold">{risk.category}</span>
                       <span className="text-slate-600">·</span>
                       <span className="text-xs text-emerald-400 font-mono">
-                        Certainty: {Math.round(risk.confidence * 100)}%
+                        Confidence: {Math.round(risk.confidence * 100)}%
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 text-[11px]">Audit State:</span>
+                    <span className="text-xs text-slate-400 text-[11px]">Review status:</span>
                     <span className={`text-xs font-mono font-bold uppercase ${
                       risk.status === 'mitigated' ? 'text-emerald-400' :
                       risk.status === 'reviewed' ? 'text-blue-400' : 'text-amber-400'
                     }`}>
-                      {risk.status}
+                      {risk.status === 'unreviewed' ? 'Needs review' : risk.status === 'mitigated' ? 'Addressed' : 'Reviewed'}
                     </span>
                   </div>
                 </div>
@@ -127,7 +127,7 @@ export const TrustRisk: React.FC = () => {
                 {risk.conflictingValues && (
                   <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
                     <div className="text-[11px] font-semibold text-rose-400 uppercase tracking-wider">
-                      Direct Contradiction Evidence:
+                      The two records disagree:
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                       <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
@@ -144,7 +144,7 @@ export const TrustRisk: React.FC = () => {
 
                 {/* Resolution note */}
                 <div className="p-3 rounded-xl bg-blue-950/20 border border-blue-500/20 text-xs text-blue-200">
-                  <strong className="text-blue-300">Recommended Resolution: </strong>
+                  <strong className="text-blue-300">Suggested next step: </strong>
                   {risk.suggestedResolution}
                 </div>
 
@@ -155,7 +155,7 @@ export const TrustRisk: React.FC = () => {
                     className="text-slate-400 hover:text-white flex items-center gap-1.5"
                   >
                     <Eye className="w-3.5 h-3.5" />
-                    <span>Inspect Raw Sources ({suppSources.length})</span>
+                    <span>View Supporting Records ({suppSources.length})</span>
                   </button>
 
                   <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ export const TrustRisk: React.FC = () => {
                         className="px-3 py-1.5 text-xs font-semibold text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/30 rounded-lg transition-colors flex items-center gap-1"
                       >
                         <Check className="w-3.5 h-3.5" />
-                        <span>Mitigate Risk</span>
+                        <span>Mark as Addressed</span>
                       </button>
                     )}
 

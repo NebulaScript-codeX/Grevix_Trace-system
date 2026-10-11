@@ -65,11 +65,11 @@ export const SettingsPrivacy: React.FC = () => {
       <div>
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400 mb-1">
           <Settings className="w-4 h-4" />
-          <span>Governance & Workspace Configuration</span>
+          <span>Workspace Preferences</span>
         </div>
         <h1 className="text-2xl font-bold text-white tracking-tight">Settings & Privacy</h1>
         <p className="text-xs text-slate-400 mt-0.5">
-          Manage identity authority, confidence cutoffs, retention policies, and local demo data resets.
+          Update your workspace name, alert preferences, saved data options, and demo records.
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export const SettingsPrivacy: React.FC = () => {
         <div className="p-5 rounded-2xl bg-[#0c1220] border border-slate-800 space-y-4">
           <div className="flex items-center gap-2 text-sm font-bold text-white">
             <User className="w-4 h-4 text-blue-400" />
-            <span>Profile & Workspace Identity</span>
+            <span>Your Profile & Workspace Name</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -110,14 +110,14 @@ export const SettingsPrivacy: React.FC = () => {
         <div className="p-5 rounded-2xl bg-[#0c1220] border border-slate-800 space-y-4">
           <div className="flex items-center gap-2 text-sm font-bold text-white">
             <Sliders className="w-4 h-4 text-blue-400" />
-            <span>Context Intelligence Controls</span>
+            <span>Insight & Alert Preferences</span>
           </div>
 
           <div className="space-y-4 text-xs">
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-slate-300 font-medium">
-                  Confidence Threshold for Automated Findings
+                  Minimum Confidence for Insights
                 </label>
                 <span className="font-mono text-emerald-400 font-bold">{Math.round(confidenceThreshold * 100)}%</span>
               </div>
@@ -131,14 +131,14 @@ export const SettingsPrivacy: React.FC = () => {
                 className="w-full accent-blue-600 bg-slate-900 h-2 rounded-lg cursor-pointer"
               />
               <p className="text-[11px] text-slate-500 mt-1">
-                Findings with confidence below this threshold require additional corroborating source evidence before appearing in the Intelligence Center.
+                Choose a confidence level for future findings. The sample findings in this demo stay the same.
               </p>
             </div>
 
             <div className="flex items-center justify-between pt-3 border-t border-slate-800">
               <div>
-                <div className="font-semibold text-white">Auto-Detect Schedule Inversions</div>
-                <div className="text-[11px] text-slate-400">Surface risk when preparation meetings fall after deadline cutoff dates.</div>
+                <div className="font-semibold text-white">Flag Meetings After Deadlines</div>
+                <div className="text-[11px] text-slate-400">Save whether you want meetings after deadlines flagged. Sample findings in this demo stay the same.</div>
               </div>
               <input
                 type="checkbox"
@@ -150,8 +150,8 @@ export const SettingsPrivacy: React.FC = () => {
 
             <div className="flex items-center justify-between pt-3 border-t border-slate-800">
               <div>
-                <div className="font-semibold text-white">Proactive Conflict Notifications</div>
-                <div className="text-[11px] text-slate-400">Trigger high-priority alerts when newer emails contradict existing memories.</div>
+                <div className="font-semibold text-white">Alert Me About Conflicting Information</div>
+                <div className="text-[11px] text-slate-400">Save whether you want alerts about conflicting details. Sample findings in this demo stay the same.</div>
               </div>
               <input
                 type="checkbox"
@@ -167,12 +167,12 @@ export const SettingsPrivacy: React.FC = () => {
         <div className="p-5 rounded-2xl bg-[#0c1220] border border-slate-800 space-y-4">
           <div className="flex items-center gap-2 text-sm font-bold text-white">
             <Lock className="w-4 h-4 text-emerald-400" />
-            <span>Data Retention & Storage Isolation</span>
+            <span>Saved Data & Privacy</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block text-slate-400 font-medium mb-1.5">Audit Log Retention (Days)</label>
+              <label className="block text-slate-400 font-medium mb-1.5">Preferred Activity History Period (Days)</label>
               <input
                 type="number"
                 min="7"
@@ -183,15 +183,15 @@ export const SettingsPrivacy: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-slate-400 font-medium mb-1.5">Storage Mode</label>
+              <label className="block text-slate-400 font-medium mb-1.5">Where Your Data Is Saved</label>
               <div className="p-2 bg-slate-900 border border-slate-800 rounded-lg text-slate-300 font-mono text-[11px]">
-                Browser Local Storage (Air-Gapped Sandbox)
+                This browser only
               </div>
             </div>
           </div>
 
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            All records, findings, and timeline events are preserved in private client browser storage. No contextual records or customer emails are transmitted to external marketing or telemetry servers.
+            Your records and activity history are saved in this browser and are not sent to an external service.
           </p>
         </div>
 
@@ -203,7 +203,7 @@ export const SettingsPrivacy: React.FC = () => {
             className="px-4 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-medium transition-colors flex items-center gap-2"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export Context JSON</span>
+            <span>Download Workspace Data</span>
           </button>
 
           <button
@@ -220,9 +220,9 @@ export const SettingsPrivacy: React.FC = () => {
       <div className="p-5 rounded-2xl bg-rose-950/20 border border-rose-500/20 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-rose-300">Restore Pristine Demo State</h3>
+            <h3 className="text-sm font-bold text-rose-300">Reset Demo Workspace</h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Restores the initial Project Polaris records, unverified deadline state, and re-arms "The Missing Deadline Update" interactive scenario.
+              Replace current demo records with the original Project Polaris example and restart the guided scenario.
             </p>
           </div>
 
@@ -240,9 +240,9 @@ export const SettingsPrivacy: React.FC = () => {
       {confirmReset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
           <div className="bg-[#0f172a] border border-slate-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl space-y-4 text-center">
-            <h3 className="text-base font-bold text-white">Reset Demo Workspace?</h3>
+            <h3 className="text-base font-bold text-white">Reset this demo workspace?</h3>
             <p className="text-xs text-slate-300">
-              This will restore all records, memories, and actions to their initial state. Any manual entries will be replaced with the default Project Polaris scenario data.
+              This restores the original sample records, saved details, and actions. Any changes or items you added will be replaced by the Project Polaris example.
             </p>
             <div className="flex items-center justify-center gap-3 pt-2">
               <button

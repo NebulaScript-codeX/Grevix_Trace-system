@@ -29,15 +29,15 @@ const scenarioCards = [
   { icon: CloudOff, title: 'Network disconnection', description: 'Important information cannot reach TRACE while the connection is unavailable.', color: 'text-amber-300 bg-amber-400/10 border-amber-400/20' },
   { icon: FileWarning, title: 'Device crash', description: 'Recent updates may not be saved or synchronized successfully.', color: 'text-rose-300 bg-rose-400/10 border-rose-400/20' },
   { icon: Database, title: 'Incomplete information', description: 'People may forget to upload or enter information TRACE needs.', color: 'text-violet-300 bg-violet-400/10 border-violet-400/20' },
-  { icon: AlertTriangle, title: 'Stale or conflicting data', description: 'Out-of-date context can create misleading connections and unreliable recommendations.', color: 'text-orange-300 bg-orange-400/10 border-orange-400/20' }
+  { icon: AlertTriangle, title: 'Old or conflicting information', description: 'Out-of-date details can lead to incorrect connections and suggestions.', color: 'text-orange-300 bg-orange-400/10 border-orange-400/20' }
 ];
 
 const solutionCapabilities = [
-  { icon: ShieldQuestion, title: 'Data completeness detection', detail: 'This demo tracks an expected deadline update that did not arrive. The existing workspace does not yet detect missing source feeds automatically.', status: 'Demo behavior' },
+  { icon: ShieldQuestion, title: 'Notice missing updates', detail: 'This demo shows an expected deadline update that has not arrived. The regular workspace does not automatically detect missing updates.', status: 'Demo behavior' },
   { icon: WifiOff, title: 'Connection-aware operation', detail: 'An explicit offline state keeps the known records visible and warns that absence of an update is not proof that nothing changed.', status: 'Demo behavior' },
-  { icon: History, title: 'Last-known context', detail: 'The existing app already keeps records in browser storage. The demo labels that saved snapshot as last known, not guaranteed current.', status: 'Existing + demo label' },
-  { icon: Network, title: 'Uncertainty-aware context map', detail: 'The normal graph is built from workspace records. This demo adds missing, stale, and verify states instead of drawing uncertain facts as confirmed.', status: 'Demo behavior' },
-  { icon: GitMerge, title: 'Recovery and reconciliation', detail: 'The simulated update is checked against the known deadline, reconciled once, and added to a deterministic event history.', status: 'Demo behavior' },
+  { icon: History, title: 'Show saved information', detail: 'Workspace records are saved in this browser. In the demo, saved details are marked as last known when newer information may be missing.', status: 'Existing + demo label' },
+  { icon: Network, title: 'Mark information that needs checking', detail: 'The regular graph uses saved workspace records. In this demo, possibly outdated details are marked so they are not mistaken for confirmed facts.', status: 'Demo behavior' },
+  { icon: GitMerge, title: 'Check recovered updates', detail: 'The demo checks the received update against the saved deadline, applies it once, and records what changed.', status: 'Demo behavior' },
   { icon: CheckCircle2, title: 'Actionable insights', detail: 'After recovery, the revised insight flags the October 19 preparation meeting as later than the October 18 cutoff.', status: 'Demo behavior' },
   { icon: RefreshCw, title: 'Low-overhead updates', detail: 'The demo recalculates only this scenario’s affected deadline, meeting relationship, and recommendation—not the entire workspace.', status: 'Demo behavior' }
 ];
@@ -61,12 +61,12 @@ const delayedDeadlineUpdate = {
 
 const nodeStatus = (phase: DemoPhase, id: string) => {
   if (id === 'delayed-update') {
-    if (phase === 'offline') return { label: 'MISSING · HELD OFFLINE', className: 'border-rose-400/30 bg-rose-400/10 text-rose-200' };
+    if (phase === 'offline') return { label: 'MISSING · NOT RECEIVED', className: 'border-rose-400/30 bg-rose-400/10 text-rose-200' };
     if (phase === 'recovered') return { label: 'RECOVERED · VERIFIED', className: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' };
     return { label: 'EXPECTED UPDATE', className: 'border-slate-600 bg-slate-800/70 text-slate-300' };
   }
   if (id === 'deadline') {
-    if (phase === 'offline') return { label: 'LAST KNOWN · POSSIBLY STALE', className: 'border-amber-400/30 bg-amber-400/10 text-amber-200' };
+    if (phase === 'offline') return { label: 'SAVED · CHECK FOR CHANGES', className: 'border-amber-400/30 bg-amber-400/10 text-amber-200' };
     if (phase === 'recovered') return { label: 'CONFIRMED · OCT 18', className: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' };
   }
   if (id === 'meeting' && phase === 'offline') return { label: 'VERIFY AGAINST UPDATE', className: 'border-amber-400/30 bg-amber-400/10 text-amber-200' };
@@ -79,7 +79,7 @@ export const ChallengeSolution: React.FC = () => {
   const [recoveryError, setRecoveryError] = useState('');
   const isOffline = phase === 'offline';
   const isRecovered = phase === 'recovered';
-  const completeness = isOffline ? '4 / 5 expected updates' : isRecovered ? '5 / 5 reconciled' : '4 / 4 received snapshot';
+  const completeness = isOffline ? '4 of 5 updates received' : isRecovered ? '5 of 5 updates checked' : '4 updates in saved snapshot';
 
   const simulateFailure = () => {
     if (phase !== 'online') return;
@@ -150,13 +150,13 @@ export const ChallengeSolution: React.FC = () => {
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-300">
             <Radio className="h-3.5 w-3.5" /> Original hackathon challenge
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">The Connected Context Fallacy</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white md:text-4xl">When Important Information Is Missing</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
-            TRACE can only connect the information it has received. When data is missing, delayed, or stale, a confident-looking map can still lead to the wrong conclusion. This challenge demo makes that uncertainty visible and shows a recoverable response.
+            TRACE can only connect information it has received. If an update is missing or late, old details may look current and lead to the wrong conclusion. This demo shows how to spot that uncertainty and check the update when it arrives.
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-            <span className="rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-1.5">Standalone, deterministic demo</span>
-            <span className="rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-1.5">No external service or real disconnection</span>
+            <span className="rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-1.5">Self-contained interactive demo</span>
+            <span className="rounded-lg border border-slate-700 bg-slate-950/60 px-2.5 py-1.5">No real connection is changed</span>
           </div>
         </div>
       </header>
@@ -206,12 +206,12 @@ export const ChallengeSolution: React.FC = () => {
         </div>
         <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-4 text-xs leading-5 text-slate-400 sm:flex-row sm:items-start">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
-          <p><strong className="text-slate-200">Scope transparency:</strong> TRACE persists workspace edits locally and builds its regular context graph from available records. Automatic sync monitoring, feed completeness detection, and offline reconciliation are not existing workspace features; the live demo below implements those behaviors as deterministic, in-memory scenario state.</p>
+          <p><strong className="text-slate-200">What this demo does:</strong> TRACE saves workspace changes in your browser and builds its regular context graph from saved records. It does not normally monitor connections or detect missing updates. The interactive example below demonstrates those steps using a fixed scenario; it does not disconnect or sync any real service.</p>
         </div>
       </section>
 
       <section aria-labelledby="demo-heading" className="space-y-4">
-        <SectionHeading eyebrow="C · LIVE WORKING DEMO" title="A deadline update arrives while offline" description="Try the outage, inspect the uncertain context, then restore the simulated connection to reconcile the delayed update." />
+        <SectionHeading eyebrow="C · INTERACTIVE DEMO" title="A deadline update arrives while offline" description="Simulate a lost connection to see why the saved date may be outdated. Then restore the demo connection to check the delayed update." />
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.8fr)]">
           <div className="space-y-4">
             <div className="rounded-2xl border border-slate-800 bg-[#0c1220] p-4 md:p-5">
@@ -221,14 +221,14 @@ export const ChallengeSolution: React.FC = () => {
                     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase ${isOffline ? 'border-rose-400/30 bg-rose-400/10 text-rose-200' : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200'}`}>
                       {isOffline ? <WifiOff className="h-3 w-3" /> : <Wifi className="h-3 w-3" />}{isOffline ? 'Offline' : 'Online'}
                     </span>
-                    <span className="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-slate-300">Completeness · {completeness}</span>
+                    <span className="rounded-full border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold text-slate-300">Updates · {completeness}</span>
                     {isRecovered && <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-200">Recovered</span>}
                   </div>
-                  <p className="mt-2 text-[11px] text-slate-500">{isOffline ? 'Last-known context is preserved; one expected update is unavailable.' : isRecovered ? 'Recovered update reconciled with the saved deadline and meeting.' : 'Initial local snapshot. A complete snapshot does not prove all relevant updates exist.'}</p>
+                  <p className="mt-2 text-[11px] text-slate-500">{isOffline ? 'Saved information is still available, but one expected update has not arrived.' : isRecovered ? 'The new update has been checked against the saved deadline and meeting.' : 'This is the starting set of saved information. Other updates may still be missing.'}</p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
                   <button onClick={simulateFailure} disabled={phase !== 'online'} className="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-45">
-                    <WifiOff className="h-3.5 w-3.5" /> Simulate Network Failure
+                    <WifiOff className="h-3.5 w-3.5" /> Simulate Lost Connection
                   </button>
                   <button onClick={restoreConnection} disabled={!isOffline} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-400/25 bg-blue-600/20 px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-blue-600/30 disabled:cursor-not-allowed disabled:opacity-45">
                     <RefreshCw className="h-3.5 w-3.5" /> Restore Connection
@@ -262,7 +262,7 @@ export const ChallengeSolution: React.FC = () => {
               </div>
               {recoveryError && <div role="alert" className="mt-4 rounded-xl border border-rose-400/25 bg-rose-950/20 px-4 py-3 text-xs text-rose-100">{recoveryError}</div>}
               <div className={`mt-4 rounded-xl border px-4 py-3 text-xs leading-5 transition-colors ${isOffline ? 'border-amber-400/25 bg-amber-950/20 text-amber-100/90' : isRecovered ? 'border-emerald-400/20 bg-emerald-950/20 text-emerald-100/90' : 'border-slate-800 bg-slate-950/50 text-slate-400'}`}>
-                {isOffline ? <><strong className="text-amber-200">Insight paused, not trusted as current.</strong> The saved October 20 deadline may have changed. Treat the October 19 preparation meeting relationship and any date-based recommendation as unverified until the missing source is recovered.</> : isRecovered ? <><strong className="text-emerald-200">Insight revised from recovered evidence.</strong> The binding cutoff is October 18 at 11:59 PM; the October 19 preparation meeting is after the deadline. Reschedule it before relying on the submission plan.</> : <><strong className="text-slate-200">Last-known insight.</strong> The October 19 preparation meeting was scheduled against the October 20 kickoff deadline. This snapshot may not include later changes.</>}
+                {isOffline ? <><strong className="text-amber-200">This information may be out of date.</strong> The saved October 20 deadline may have changed. Check the October 19 preparation meeting and any date-based suggestion again after the missing update arrives.</> : isRecovered ? <><strong className="text-emerald-200">The update changed this insight.</strong> The newer email sets the deadline to October 18 at 11:59 PM. The October 19 preparation meeting is after the deadline; reschedule it before relying on the submission plan.</> : <><strong className="text-slate-200">Based on the information currently saved.</strong> The October 19 preparation meeting was scheduled for before the October 20 deadline. A later change may not be included here.</>}
               </div>
             </div>
 

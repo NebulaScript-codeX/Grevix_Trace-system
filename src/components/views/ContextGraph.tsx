@@ -271,11 +271,11 @@ export const ContextGraph: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400 mb-1">
             <Network className="w-4 h-4" />
-            <span>Interactive Relationship Topology</span>
+            <span>How Workspace Information Connects</span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Context Graph</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Visualize semantic links between people, emails, calendar events, technical specifications, and active deadlines.
+            See which people, messages, events, documents, and deadlines are linked in your workspace. Select a circle to view its details.
           </p>
         </div>
 
@@ -283,7 +283,7 @@ export const ContextGraph: React.FC = () => {
         <div className="flex items-center gap-2">
           <input
             type="text"
-            placeholder="Search graph nodes..."
+            placeholder="Search connected information..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 w-44"
@@ -294,7 +294,7 @@ export const ContextGraph: React.FC = () => {
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-blue-500"
           >
-            <option value="all">All Node Types</option>
+            <option value="all">All Record Types</option>
             <option value="project">Projects</option>
             <option value="person">People</option>
             <option value="email">Emails</option>

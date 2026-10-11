@@ -68,13 +68,13 @@ const recordMatches = (query: string, title: string, body: string): boolean => {
 const statusLabel = (action: ActionRecord): string => {
   switch (action.status) {
     case 'pending_approval':
-      return 'pending approval';
+      return 'waiting for your approval';
     case 'suggested':
-      return 'suggested, not yet approved';
+      return 'suggested; not approved yet';
     case 'approved':
       return 'approved';
     case 'in_progress':
-      return 'in progress';
+      return 'underway';
     case 'completed':
       return 'completed';
     case 'failed':
@@ -167,11 +167,11 @@ export const buildTraviResponse = (
   const citations: Array<{ id: string; title: string; type: string }> = [];
 
   if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(normalizedQuestion)) {
-    return response('Hello! I can look up and summarize the records, findings, risks, and actions currently stored in this TRACE workspace. I use local rules, not an AI model.');
+    return response('Hello! I can look up and explain the sources, saved details, concerns, and actions in this TRACE workspace. I use simple local rules, not an AI model.');
   }
 
   if (containsAny(lowered, [/\bwhat is trace\b/, /\babout trace\b/, /\bwhat can you do\b/, /\bhow does trace work\b/])) {
-    return response('TRACE keeps workspace sources, memories, findings, risks, and proposed actions together so you can inspect their connections. I can search those local records and summarize what they say; I do not generate answers with an AI model or change records for you.', [
+    return response('TRACE keeps your sources, saved project details, concerns, and suggested actions together so you can see how they relate. I can search these local records and summarize them. I do not use an AI model or change records for you.', [
       ...data.memories.filter(memory => /projects|facts/.test(memory.category)).slice(0, 1).map(memory => ({
         id: memory.id, title: memory.title, type: 'memory'
       }))
@@ -227,21 +227,21 @@ export const buildTraviResponse = (
           `${source.summary} ${source.content} ${source.extractedDetails.join(' ')}`).slice(0, 2);
         return response(
           relatedSources.length
-            ? `I found related source material, but no existing action for “${question}”. I have not created tasks. Review the cited records to decide what should become a task.`
-            : `I couldn't find source evidence or an existing action for “${question}”, so I can't turn it into a reliable task. I have not created anything.`,
+            ? `I found related information, but there is no action for “${question}” in the workspace. I have not created any tasks. Check the linked records and decide whether to add one.`
+            : `I couldn't find information or an existing action for “${question}”, so I can't make a reliable task from it. I have not added anything.`,
           relatedSources.map(source => ({ id: source.id, title: source.title, type: source.type }))
         );
       }
       const relatedSources = relevantRecords(retrievalQuestion, data.sources, source =>
         `${source.summary} ${source.content} ${source.extractedDetails.join(' ')}`).slice(0, 2);
       return response(
-        `I couldn't find an existing action matching “${question}”. That only means it isn't listed as an action in this workspace; related source records may still mention it.${relatedSources.length ? ` Possible related record${relatedSources.length === 1 ? '' : 's'}: ${relatedSources.map(source => `“${source.title}”`).join(', ')}.` : ''}`,
+        `I couldn't find an action matching “${question}” in this workspace. It may still be mentioned in a source record.${relatedSources.length ? ` Related record${relatedSources.length === 1 ? '' : 's'}: ${relatedSources.map(source => `“${source.title}”`).join(', ')}.` : ''}`,
         relatedSources.map(source => ({ id: source.id, title: source.title, type: source.type }))
       );
     }
 
     if (matchedActions.length === 0) {
-      return response('I can’t determine which task you mean from the current message. Which project or task should I look at?');
+      return response('Which project or task should I check?');
     }
 
     const displayedActions = asksPending
@@ -268,16 +268,16 @@ export const buildTraviResponse = (
         : 'I found no open actions to turn into a checklist. I have not created any tasks.';
     } else if (asksPriority) {
       taskAnswer = openActions.length
-        ? `Based on the actions already recorded, start with the highest-priority open item:\n${openActions.slice(0, 3).map((action, index) => `${index + 1}. ${action.title} — ${statusLabel(action)}.`).join('\n')}\nThese are existing workspace actions, not new tasks.`
+        ? `Start with the highest-priority open action already in the workspace:\n${openActions.slice(0, 3).map((action, index) => `${index + 1}. ${action.title} — ${statusLabel(action)}.`).join('\n')}\nThese are existing actions, not new tasks.`
         : 'There are no open actions recorded for this project. I can’t infer a new task from the available records.';
     } else {
-      taskAnswer = `Here ${sortedActions.length === 1 ? 'is the matching action' : 'are the matching actions'} recorded in the workspace:\n${actionLines.join('\n')}`;
+      taskAnswer = `Here ${sortedActions.length === 1 ? 'is the matching action' : 'are the matching actions'} in the workspace:\n${actionLines.join('\n')}`;
     }
 
     const evidenceNote = linkedFindings.find(finding =>
       finding.category === 'conflict' || finding.category === 'dependency');
     if (evidenceNote && containsAny(lowered, [/\bdependenc(y|ies)\b/, /\bconflict\b/, /\bdeadline\b/, /\bschedule\b/])) {
-      taskAnswer += `\n\nRelated finding (${evidenceNote.status}): ${evidenceNote.explanation}`;
+      taskAnswer += `\n\nRelated insight (${evidenceNote.status}): ${evidenceNote.explanation}`;
       taskCitations.push(...evidenceNote.sourceIds.flatMap(id => {
         const source = data.sources.find(item => item.id === id);
         return source ? [{ id: source.id, title: source.title, type: source.type }] : [];
@@ -292,7 +292,7 @@ export const buildTraviResponse = (
 
   if (asksDeadline || asksConflicts) {
     if (explicitProject && !knownProjectMention) {
-      return response(`I don't have records for Project ${explicitProject} in this workspace, so I can't verify its deadline or conflicts.`);
+      return response(`There is no information about Project ${explicitProject} in this workspace, so I can't check its deadline or conflicts.`);
     }
 
     const scopedSources = data.sources.filter(source =>
@@ -314,7 +314,7 @@ export const buildTraviResponse = (
       && recordMatches(retrievalQuestion, risk.category, risk.explanation));
 
     if (scopedSources.length === 0 && scopedMemories.length === 0 && scopedFindings.length === 0 && matchingRisks.length === 0) {
-      return response(`I couldn't verify a matching deadline or conflict in the records I found${projectNames.length ? ` for ${projectNames.join(', ')}` : ''}. Which project or deadline do you mean?`);
+      return response(`I couldn't confirm a matching deadline or conflict${projectNames.length ? ` for ${projectNames.join(', ')}` : ''}. Which project or deadline should I check?`);
     }
 
     const conflictFinding = scopedFindings.find(finding => finding.category === 'conflict');
@@ -334,18 +334,18 @@ export const buildTraviResponse = (
     let answer = '';
 
     if (conflict) {
-      answer = `The records conflict${projectNames.length ? ` for ${projectNames.join(', ')}` : ''}:\n${deadlineClaims.join('\n') || conflictFinding?.explanation || ''}`;
+      answer = `The saved records disagree${projectNames.length ? ` about ${projectNames.join(', ')}` : ''}:\n${deadlineClaims.join('\n') || conflictFinding?.explanation || ''}`;
       if (memory) {
-        answer += `\n\nWorkspace memory still says “${memory.value}” and is marked ${memory.verificationStatus}.`;
+        answer += `\n\nThe saved project detail still says “${memory.value}” and is marked ${memory.verificationStatus === 'unverified' ? 'not confirmed' : memory.verificationStatus}.`;
       }
       if (updateSource) {
-        answer += ` The newer source explicitly says it supersedes the earlier date; it reports ${updateSource.entities.deadlines?.join('; ') || 'an updated deadline'}. That is the latest source-backed claim, but the memory is not reconciled yet.`;
+        answer += ` The newer source says it replaces the earlier date. It gives ${updateSource.entities.deadlines?.join('; ') || 'an updated deadline'}. This is the latest date in the sources, but the saved project detail has not been updated yet.`;
       }
       const relevantAction = data.actions.find(action =>
         action.proposedChange?.targetId === memory?.id
         || (conflictFinding && action.findingId === conflictFinding.id));
       if (relevantAction) {
-        answer += ` The related action is ${statusLabel(relevantAction)}; ${relevantAction.status === 'completed' || relevantAction.status === 'approved' ? 'check the current memory value to confirm the change.' : 'it has not been applied.'}`;
+        answer += ` The related action is ${statusLabel(relevantAction)}; ${relevantAction.status === 'completed' || relevantAction.status === 'approved' ? 'check the saved project detail to confirm the change.' : 'the change has not been applied.'}`;
         citations.push({ id: relevantAction.id, title: relevantAction.title, type: 'action' });
       }
       if (dependencyFinding) {
@@ -359,10 +359,10 @@ export const buildTraviResponse = (
         citations.push({ id: conflictFinding.id, title: conflictFinding.title, type: 'risk' });
       }
     } else if (memory) {
-      answer = `The workspace memory records ${memory.title} as “${memory.value}” (${memory.verificationStatus}).`;
+      answer = `The saved project detail for ${memory.title} is “${memory.value}” (${memory.verificationStatus === 'unverified' ? 'not confirmed' : memory.verificationStatus}).`;
       if (sourcesByDate[0]) answer += ` The latest matching source is “${sourcesByDate[0].title}” dated ${sourcesByDate[0].date}.`;
     } else if (deadlineClaims.length) {
-      answer = `The matching source record${deadlineClaims.length === 1 ? ' says' : 's say'}:\n${deadlineClaims.join('\n')}`;
+      answer = `The matching source${deadlineClaims.length === 1 ? ' says' : 's say'}:\n${deadlineClaims.join('\n')}`;
     } else {
       answer = matchingRisks.map(risk => `${risk.category}: ${risk.explanation} (status: ${risk.status}).`).join('\n');
     }
@@ -393,7 +393,7 @@ export const buildTraviResponse = (
     ])];
     const selectedProjects = projectNames.length > 0 ? projectNames : knownProjects;
     if (selectedProjects.length !== 1) {
-      return response(`I found ${knownProjects.length} projects in this workspace. Which one should I list connected records for?`);
+      return response(`I found ${knownProjects.length} projects here. Which project's related records would you like to see?`);
     }
     const selectedProject = selectedProjects[0];
     const linkedSources = data.sources.filter(source => source.entities.projects.includes(selectedProject));
@@ -410,7 +410,7 @@ export const buildTraviResponse = (
       return response(`I couldn't find records explicitly linked to ${selectedProject}.`);
     }
     return response(
-      `Records explicitly linked to ${selectedProject} (${connectedRecords.length}):\n${connectedRecords.slice(0, 12).map(record => `• ${record.kind}: ${record.title}`).join('\n')}`,
+      `Records linked to ${selectedProject} (${connectedRecords.length}):\n${connectedRecords.slice(0, 12).map(record => `• ${record.kind}: ${record.title}`).join('\n')}`,
       connectedRecords
     );
   }
@@ -430,11 +430,11 @@ export const buildTraviResponse = (
     })),
     ...matchedMemories.slice(0, 2).map(memory => ({
       id: memory.id, title: memory.title, type: 'memory',
-      line: `• Memory: ${memory.title} — ${memory.value} (${memory.verificationStatus}).`
+      line: `• Saved detail: ${memory.title} — ${memory.value} (${memory.verificationStatus === 'unverified' ? 'not confirmed' : memory.verificationStatus}).`
     })),
     ...matchedFindings.slice(0, 2).map(finding => ({
       id: finding.id, title: finding.title, type: 'risk',
-      line: `• Finding (${finding.status}): ${finding.title} — ${finding.explanation}`
+      line: `• Insight (${finding.status}): ${finding.title} — ${finding.explanation}`
     })),
     ...matchedActions.slice(0, 2).map(action => ({
       id: action.id, title: action.title, type: 'action',
@@ -444,14 +444,14 @@ export const buildTraviResponse = (
 
   if (recordResults.length > 0) {
     return response(
-      `${asksForRecords ? 'Relevant records I found' : 'Here is what the workspace records say'}:\n${recordResults.map(record => record.line).join('\n')}`,
+      `${asksForRecords ? 'Here is what I found' : 'Here is what the saved information says'}:\n${recordResults.map(record => record.line).join('\n')}`,
       recordResults
     );
   }
 
   if (!asksForRecords && !asksDeadline && !asksConflicts && !isTaskQuery) {
-    return response('I can answer from the records stored in this TRACE workspace, but I can’t determine what you’re asking yet. Which project, person, source, or action should I look up?');
+    return response('I can answer questions about information saved in this TRACE workspace. What project, person, source, or action should I look up?');
   }
 
-  return response(`I couldn't find a matching record for “${question}” in this browser workspace. I can only answer from the local sources, memories, findings, risks, and actions currently stored here.`);
+  return response(`I couldn't find “${question}” in this workspace. I can only answer using information saved here, such as sources, project details, insights, concerns, and actions.`);
 };

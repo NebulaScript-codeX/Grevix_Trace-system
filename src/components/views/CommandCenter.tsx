@@ -43,7 +43,7 @@ export const CommandCenter: React.FC = () => {
           <div className="space-y-1.5 max-w-2xl">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400">
               <TraceLogo className="w-4 h-4" />
-              <span>Personal Intelligence Overview</span>
+              <span>Workspace Overview</span>
               <span className="text-slate-500">·</span>
               <span className="text-slate-400 font-mono">Workspace: Project Polaris</span>
             </div>
@@ -53,11 +53,11 @@ export const CommandCenter: React.FC = () => {
             <p className="text-xs text-slate-300 leading-relaxed">
               {metrics.criticalFindings > 0 ? (
                 <span>
-                  TRACE detected <strong className="text-rose-400 font-semibold">{metrics.criticalFindings} critical schedule conflict</strong> requiring human review. An authoritative update advanced the Project Polaris submission cutoff ahead of downstream prep runs.
+                  TRACE found <strong className="text-rose-400 font-semibold">{metrics.criticalFindings} urgent schedule conflict</strong> that needs your review. A newer Project Polaris update moved the submission deadline earlier than the scheduled preparation meeting.
                 </span>
               ) : (
                 <span>
-                  All critical conflicts are currently resolved. Workspace memory is synchronized with verified source updates.
+                  All urgent conflicts have been reviewed or resolved. Saved project information matches the updates currently confirmed in the workspace.
                 </span>
               )}
             </p>
@@ -97,7 +97,7 @@ export const CommandCenter: React.FC = () => {
             <Library className="w-3.5 h-3.5 group-hover:text-blue-400 transition-colors" />
           </div>
           <div className="text-2xl font-bold text-white font-mono tabular-nums">{metrics.totalSources}</div>
-          <div className="text-[11px] text-slate-500 mt-0.5">Ingested records</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Saved emails, notes, and files</div>
         </button>
 
         <button
@@ -109,7 +109,7 @@ export const CommandCenter: React.FC = () => {
             <Bookmark className="w-3.5 h-3.5 group-hover:text-blue-400 transition-colors" />
           </div>
           <div className="text-2xl font-bold text-white font-mono tabular-nums">{metrics.totalMemories}</div>
-          <div className="text-[11px] text-slate-500 mt-0.5">Preserved context</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Saved project details</div>
         </button>
 
         <button
@@ -121,7 +121,7 @@ export const CommandCenter: React.FC = () => {
             <span className={`w-2 h-2 rounded-full ${metrics.openFindings > 0 ? 'bg-amber-400' : 'bg-slate-600'}`} />
           </div>
           <div className="text-2xl font-bold text-white font-mono tabular-nums">{metrics.openFindings}</div>
-          <div className="text-[11px] text-slate-500 mt-0.5">Active insights</div>
+          <div className="text-[11px] text-slate-500 mt-0.5">Insights to review</div>
         </button>
 
         <button
@@ -170,7 +170,7 @@ export const CommandCenter: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-rose-400" />
-                <h2 className="text-sm font-bold text-white tracking-tight">Active Context Discrepancies</h2>
+                <h2 className="text-sm font-bold text-white tracking-tight">Conflicts to Review</h2>
               </div>
               <button
                 onClick={() => setActiveTab('intelligence-center')}
@@ -241,7 +241,7 @@ export const CommandCenter: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CheckSquare className="w-4 h-4 text-blue-400" />
-                <h2 className="text-sm font-bold text-white tracking-tight">Pending Actions Awaiting Approval</h2>
+                <h2 className="text-sm font-bold text-white tracking-tight">Suggested Actions to Review</h2>
               </div>
               <button
                 onClick={() => setActiveTab('action-board')}
@@ -301,7 +301,7 @@ export const CommandCenter: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-blue-400" />
-                <h2 className="text-sm font-bold text-white tracking-tight">Tracked Deadlines & Dates</h2>
+                <h2 className="text-sm font-bold text-white tracking-tight">Project Deadlines & Dates</h2>
               </div>
               <button
                 onClick={() => setActiveTab('memory-center')}

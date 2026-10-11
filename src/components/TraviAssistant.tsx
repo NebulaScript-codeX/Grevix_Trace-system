@@ -100,7 +100,7 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Your context guide through connected records, conflicts, and outcomes
+              Ask about the information saved in this workspace
             </p>
           </div>
         </div>
@@ -131,7 +131,7 @@ export const TraviAssistant: React.FC<TraviAssistantProps> = ({ isModal = false,
       <div className="flex items-center gap-2 border-b border-indigo-300/10 bg-gradient-to-r from-indigo-500/[0.08] via-blue-500/[0.04] to-transparent px-4 py-2 text-[10px] text-blue-200/90 sm:px-6 sm:text-[11px]">
         <Lock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
         <span>
-          <strong>Local demo assistant:</strong> TRAVI uses predefined keyword responses and local workspace records. It is not an AI service.
+          <strong>Local demo assistant:</strong> TRAVI uses simple keyword rules to search this workspace. It is not an AI service.
         </span>
       </div>
 

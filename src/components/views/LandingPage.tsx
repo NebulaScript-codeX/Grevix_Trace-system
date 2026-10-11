@@ -43,10 +43,10 @@ export const LandingPage: React.FC = () => {
       <div className="trace-glass trace-entrance flex flex-col items-center justify-between gap-3 rounded-2xl border-amber-300/20 bg-gradient-to-r from-amber-500/[0.07] via-indigo-500/[0.035] to-transparent p-3.5 text-xs text-amber-100 sm:flex-row">
         <div className="flex items-center gap-2">
           <span className="px-2 py-0.5 rounded font-mono font-bold uppercase bg-amber-500/20 text-amber-300 text-[10px] tracking-wider">
-            Hackathon Prototype
+            Sample Workspace
           </span>
           <span>
-            <strong>TRACE IS CURRENTLY A HACKATHON PROTOTYPE.</strong> Demonstrating context-aware execution over deterministic sample data.
+            <strong>TRACE IS A LOCAL DEMO.</strong> Explore sample project information, insights, and suggested actions.
           </span>
         </div>
         <button
@@ -56,7 +56,7 @@ export const LandingPage: React.FC = () => {
           }}
           className="text-amber-300 hover:text-white font-semibold underline underline-offset-4 text-xs whitespace-nowrap"
         >
-          Launch Guided Scenario &rarr;
+          Try the Guided Demo &rarr;
         </button>
       </div>
 
@@ -78,7 +78,7 @@ export const LandingPage: React.FC = () => {
             <TraceLogo className="w-4 h-4" />
             <span className="font-semibold text-blue-400">TRACE</span>
             <span className="text-slate-600">·</span>
-            <span>Personal Intelligence & Context-Aware Execution System</span>
+            <span>Project Information, Insights & Actions</span>
           </div>
 
           <h1 className="text-balance text-4xl font-extrabold leading-[1.08] tracking-[-0.045em] text-white sm:text-6xl lg:text-7xl">
@@ -89,7 +89,7 @@ export const LandingPage: React.FC = () => {
           </h1>
 
           <p className="mx-auto max-w-2xl text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
-            People don't suffer from a lack of information — they suffer from scattered context. TRACE connects emails, calendars, meeting notes, and commitments to surface critical conflicts and recommend approved actions.
+            Project information is often spread across emails, calendars, and notes. TRACE brings those details together to highlight conflicts and suggest what to review next.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -97,7 +97,7 @@ export const LandingPage: React.FC = () => {
               onClick={() => setActiveTab('command-center')}
               className="group flex items-center gap-2 rounded-xl border border-blue-300/20 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-6 py-3 text-xs font-semibold text-white shadow-lg shadow-indigo-950/50 transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-14px_rgba(99,102,241,0.9)]"
             >
-              <span>Enter Workspace Console</span>
+              <span>Open Workspace</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
@@ -109,7 +109,7 @@ export const LandingPage: React.FC = () => {
               className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-6 py-3 text-xs font-semibold text-slate-200 transition-all hover:-translate-y-0.5 hover:border-indigo-300/25 hover:bg-indigo-400/[0.08] hover:text-white"
             >
               <Sparkles className="w-4 h-4 text-blue-400" />
-              <span>Interactive Demo Scenario</span>
+              <span>Try the Guided Demo</span>
             </button>
 
             <button

@@ -49,11 +49,11 @@ export const IntelligenceCenter: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400 mb-1">
             <Lightbulb className="w-4 h-4" />
-            <span>Reasoning Engine</span>
+            <span>Insights & Conflicts</span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Intelligence Center</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Surfaces conflicting deadlines, outdated facts, inverted dependencies, and contextual risks backed by multi-source evidence.
+            Review conflicting dates, outdated details, schedule issues, and other concerns. Each insight includes the records it is based on and a suggested next step.
           </p>
         </div>
 
@@ -71,7 +71,7 @@ export const IntelligenceCenter: React.FC = () => {
       {/* Filter Segmented Controls (Using functional buttons without pill badges) */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#0d1322] rounded-xl border border-slate-800">
         <div className="flex flex-wrap items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80">
-          <span className="text-[11px] font-medium text-slate-400 px-2">Severity:</span>
+          <span className="text-[11px] font-medium text-slate-400 px-2">Importance:</span>
           {(['all', 'critical', 'warning', 'advisory'] as const).map(sev => (
             <button
               key={sev}
@@ -109,9 +109,9 @@ export const IntelligenceCenter: React.FC = () => {
       {filteredFindings.length === 0 ? (
         <div className="p-12 text-center rounded-2xl bg-[#0c1220] border border-slate-800 space-y-2">
           <CheckCircle2 className="w-8 h-8 text-slate-600 mx-auto" />
-          <h3 className="text-sm font-semibold text-white">No Findings Match Filter</h3>
+          <h3 className="text-sm font-semibold text-white">No insights match these filters</h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Try resetting the severity or status filters to display all contextual findings.
+            Change the importance or status filters to see more insights.
           </p>
           <button
             onClick={() => { setSeverityFilter('all'); setStatusFilter('all'); setSearch(''); }}
@@ -195,7 +195,7 @@ export const IntelligenceCenter: React.FC = () => {
                       className="text-slate-400 hover:text-white flex items-center gap-1.5 py-1"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Deep Inspection</span>
+                      <span>View Details</span>
                     </button>
 
                     {refSources.length > 0 && (

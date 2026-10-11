@@ -76,11 +76,11 @@ export const TimelineAudit: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-blue-400 mb-1">
             <History className="w-4 h-4" />
-            <span>Cryptographic & Deterministic Audit Trail</span>
+            <span>Workspace Activity History</span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Timeline & Audit</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Immutable chronological log of all ingested sources, context extractions, user approvals, and state modifications.
+            A time-ordered list of changes made in this workspace, such as added sources, reviewed insights, and approved actions.
           </p>
         </div>
 
@@ -127,7 +127,7 @@ export const TimelineAudit: React.FC = () => {
             typeFilter === 'source_added' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Ingestions
+          Added Sources
         </button>
         <button
           onClick={() => setTypeFilter('memory_edited')}
@@ -135,7 +135,7 @@ export const TimelineAudit: React.FC = () => {
             typeFilter === 'memory_edited' ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          Memory Edits
+          Updated Details
         </button>
       </div>
 
